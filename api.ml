@@ -32,11 +32,14 @@ let set_form h args =
   set_postfields h body;
   set_postfieldsize h (String.length body)
 
+let h = lazy (Curl.init ())
+
 let get ?post api =
   if Unix.gettimeofday () -. !last_run < 1. then sleep 1.;
   last_run := Unix.gettimeofday ();
   let open Curl in
-  let h = init () in
+  let h = Lazy.force h in
+  reset h;
   set_useragent h "HET";
   set_nosignal h true;
   set_connecttimeout h 2;
@@ -131,7 +134,7 @@ let submit_solutions () =
     let rr = (Api_j.solution_of_string res).resemblance in
     if rr > 0.999999 then Std.output_file ~filename:(perfect s) ~text:sol;
     if rr > best_r then Std.output_file ~filename:(best s) ~text:res;
-    let msg = if (best_r > 0. && rr > best_r) || (prev_r > 0. && rr > prev_r) then "improved " else "" in
+    let msg = if best_r > 0. then (if rr > best_r then "IMPROVED " else "") else "new " in
     eprintfn "%sresemblance %g -> %g (best was %g)" msg prev_r rr best_r
   end
 
