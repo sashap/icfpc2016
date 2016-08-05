@@ -45,4 +45,4 @@ oasis:
 	oasis setup -setup-update dynamic
 
 %.out: %.in
-	./origami.native solve bb $< > $@
+	./origami.native solve bb $< > $@ || rm $@

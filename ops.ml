@@ -24,7 +24,7 @@ let bounding_box shape =
     List.fold_left (fun (alo,ahi) p -> Pt.lo p alo, Pt.hi p ahi) (x,x) xs
 
 let fold_bb (lo,hi) =
-  let bb = Pt.sub hi lo in
+  let bb = Pt.lo {x=R.one;y=R.one} (Pt.sub hi lo) in
   let rec loop acc cur r =
     if R.gt R.one cur then loop (cur::acc) (R.add cur r) r else R.one :: acc
   in
