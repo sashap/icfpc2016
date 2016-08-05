@@ -47,12 +47,14 @@ let fold_bb (lo,hi) =
         _ -> None
     end
   in
-  let bb2x = R.mul bb.x R.two in
-  let bb2y = R.mul bb.y R.two in
   let src = Array.to_list vs in
+  let wrap p len =
+    let n,m = R.divide p len in
+    if R.is_zero m then snd @@ R.divide p (R.mul len R.two) else if n mod 2 = 0 then m else R.sub len m
+  in
   let dst = src |> List.map begin fun p ->
-    let x = R.modulo p.x bb2x in
-    let y = R.modulo p.y bb2y in
+    let x = wrap p.x bb.x in
+    let y = wrap p.y bb.y in
     Pt.add lo {x;y} end
   in
   { src=Array.to_list vs; dst; facets; }

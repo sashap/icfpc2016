@@ -40,16 +40,17 @@ let sub x y =
   assert (x.b = y.b);
   {a = x.a - y.a; b = x.b}
 
-let modulo x y =
+let divide x y =
   assert (x.a >= 0);
-  let rec loop cur y =
+  let rec loop (n,cur) y =
     let next = sub cur y in
-    if next.a < 0 then cur else loop next y
+    if next.a < 0 then n,cur else loop (n+1,next) y
   in
-  loop x y
+  loop (0,x) y
 
 let sqr x = mul x x
 let eq x y = let x,y = norm x y in x.a = y.a
+let is_zero x = x.a = 0
 
 let gt a b = (sub a b).a > 0
 let min_ a b = if gt b a then a else b
