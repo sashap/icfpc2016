@@ -12,7 +12,12 @@ type t = ratio
 let make a b =
   assert (b > 0);
   { a; b }
-let zero = {a = 0; b = 1}
+
+let int n = make n 1
+let zero = int 0
+let one = int 1
+let two = int 2
+
 let show = function {a;b=1} -> sprintf "%d" a | {a;b} -> sprintf "%d/%d" a b
 let of_string s =
   match String.split s "/" with
@@ -36,6 +41,9 @@ let sub x y =
 let sqr x = mul x x
 let eq x y = let x,y = norm x y in x.a = y.a
 
+let min_ a b = if (sub a b).a < 0 then a else b
+let max_ a b = if (sub a b).a > 0 then a else b
+
 module Infix = struct
 let (-) = sub
 let (+) = add
@@ -55,6 +63,9 @@ let of_string s =
     { x = R.of_string x; y = R.of_string y }
   with exn ->
     Exn.fail ~exn "Pt.of_string %S" s
+let lo p1 p2 = { x = R.min_ p1.x p2.x; y = R.min_ p1.y p2.y }
+let hi p1 p2 = { x = R.max_ p1.x p2.x; y = R.max_ p1.y p2.y }
+let sub a b = R.Infix.{ x = a.x - b.x; y = a.y - b.y }
 end
 
 module Poly = struct

@@ -1,4 +1,5 @@
 open ExtLib
+open Prelude
 
 open Otypes
 
@@ -15,9 +16,15 @@ let read ch =
   in
   { Problem.shape; skel }
 
+let read file = Control.with_open_in_txt file read
+
 let () =
   match Action.args with
   | "render"::file::[] ->
-    let p = Control.with_open_in_txt file read in
+    let p = read file in
     Control.with_open_out_bin (file ^ ".png") (Render.render p)
+  | "bb"::file::[] ->
+    let p = read file in
+    let (lo,hi) = Ops.bounding_box p.shape in
+    printfn "%s %s" (Pt.show lo) (Pt.show hi)
   | _ -> Exn.fail "wat"

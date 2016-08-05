@@ -7,9 +7,6 @@ open Otypes
 
 let size = Size2.v 200. 200. (* mm *)
 
-let shift = 0.25
-let view = let l = (1.+.2.*.shift) in Box2.v P2.o (Size2.v l l)
-
 let r {a;b} = float a /. float b
 let pt {x;y} = P2.v (r x) (r y)
 
@@ -32,6 +29,13 @@ let image_of_skel skel =
 (* 2. Render *)
 
 let render { Problem.shape; skel } ch =
+  let (lo,hi) = Ops.bounding_box shape in
+  let bb = Pt.sub hi lo in
+  let dim = max (r bb.x) (r bb.x) in
+  let view_size = (max dim 1.) *. 1.5 in
+  let shift_x = R.Infix.(view_size /. 2. -. (r lo.x +. r (bb.x / R.two))) in
+  let shift_y = R.Infix.(view_size /. 2. -. (r lo.y +. r (bb.y / R.two))) in
+  let view = Box2.v P2.o (Size2.v view_size view_size) in
   let image = List.fold_left (fun a b -> I.blend b a) (I.const Color.white) [box; image_of_shape shape; image_of_skel skel] in
 (*
   let xmp = Vgr.xmp ~title:"Polygon" () in
@@ -42,5 +46,5 @@ let render { Problem.shape; skel } ch =
   let target = Vgr_cairo.stored_target fmt in
   let warn w = Vgr.pp_warning Format.err_formatter w in
   let r = Vgr.create ~warn target (`Channel ch) in
-  ignore (Vgr.render r (`Image (size, view, I.move (P2.v shift shift) image)));
+  ignore (Vgr.render r (`Image (size, view, I.move (P2.v shift_x shift_y) image)));
   ignore (Vgr.render r `End)
