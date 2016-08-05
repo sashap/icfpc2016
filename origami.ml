@@ -37,4 +37,5 @@ let () =
     print_string @@ Solution.show solution
   | "hello"::[] -> printfn "%s" (Api.get "hello")
   | "get_tasks"::[] -> Api.get_all_tasks ()
+  | "submit"::[] -> Api.submit_solutions ()
   | _ -> fail "wat"

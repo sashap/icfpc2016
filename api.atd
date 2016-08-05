@@ -43,3 +43,11 @@ type state = {
   leaderboard : leader list;
   users : user list;
 }
+
+type solution = {
+  ok : bool;
+  problem_id : int;
+  resemblance : float;
+  solution_spec_hash : string;
+  solution_size : int;
+}
