@@ -95,10 +95,12 @@ let get_all_tasks () =
       Std.output_file ~filename ~text:(get_blob p.problem_spec_hash)
   end
 
+let base_ts = 1470441600
+
 let send ?sol ?prob s =
   let api,task = match sol, prob with
     | Some s , None -> "solution/submit", ("problem_id", s)
-    | None, Some p -> "problem/submit", ("publish_time", p)
+    | None, Some p -> "problem/submit", ("publish_time", sprintf "%d" (base_ts + 3600 * p))
     | _ -> failwith "problem *OR* solution!"
   in
   let post = [ task; "solution_spec", s] in
@@ -153,7 +155,10 @@ let submit_problems () =
   |> List.iter begin fun s ->
     eprintfn "sending %s ..." (out s);
     let prob = Std.input_file @@ out s in
-    let res = send ~prob:s prob in
+    let res = send ~prob:(int_of_string s) prob in
     Std.output_file ~filename:(result s) ~text:res;
     Std.output_file ~filename:(sent s) ~text:prob;
+    let res = Api_j.problem_subm_of_string res in
+    assert res.ok;
+    printfn "problem #%d will be published on %d" res.problem_id res.publish_time
   end
