@@ -49,3 +49,6 @@ oasis:
 
 %.done: %.out
 	cp $< $@
+
+%.in.png: %.in
+	./origami.native render $<
