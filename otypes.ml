@@ -78,6 +78,8 @@ let hi p1 p2 = { x = R.max_ p1.x p2.x; y = R.max_ p1.y p2.y }
 let sub a b = R.Infix.{ x = a.x - b.x; y = a.y - b.y }
 let add a b = R.Infix.{ x = a.x + b.x; y = a.y + b.y }
 let eq a b = R.eq a.x b.x && R.eq a.y b.y
+let one = {x=R.one;y=R.one}
+let zero = {x=R.zero;y=R.zero}
 end
 
 module Poly = struct

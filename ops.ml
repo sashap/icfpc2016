@@ -24,7 +24,7 @@ let bounding_box shape =
     List.fold_left (fun (alo,ahi) p -> Pt.lo p alo, Pt.hi p ahi) (x,x) xs
 
 let fold_bb (lo,hi) =
-  let bb = Pt.lo {x=R.one;y=R.one} (Pt.sub hi lo) in
+  let bb = Pt.lo Pt.one (Pt.sub hi lo) in
   let rec loop acc cur r =
     if R.gt R.one cur then loop (cur::acc) (R.add cur r) r else R.one :: acc
   in
@@ -35,9 +35,12 @@ let fold_bb (lo,hi) =
   let facets =
     vs |> Array.to_list |> List.filter_map begin fun p ->
       let open R.Infix in
-      let px = { x = p.x + bb.x; y = p.y } in
-      let py = { x = p.x; y = p.y + bb.y } in
-      let pp = Pt.add p bb in
+      match R.eq R.one p.x || R.eq R.one p.y with
+      | true -> None
+      | false ->
+      let px = { x = R.min_ R.one (p.x + bb.x); y = p.y } in
+      let py = { x = p.x; y = R.min_ R.one (p.y + bb.y) } in
+      let pp = Pt.lo Pt.one (Pt.add p bb) in
       try
         Some [ index p; index px; index pp; index py ]
       with
