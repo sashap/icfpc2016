@@ -14,4 +14,4 @@ Executable origami
   Path: .
   MainIs: origami.ml
   CompiledObject: best
-  BuildDepends: devkit, threads, vg.cairo
+  BuildDepends: extlib, vg.cairo

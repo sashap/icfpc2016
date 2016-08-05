@@ -1,7 +1,8 @@
 open Printf
 open ExtLib
+open Prelude
 
-let atoi s = try int_of_string @@ String.strip s with _ -> Exn.fail "atoi %S" s
+let atoi s = try int_of_string @@ String.strip s with _ -> fail "atoi %S" s
 
 type ratio = { a : int; b : int }
 type point = { x : ratio; y : ratio }
@@ -72,7 +73,7 @@ let of_string s =
     let (x,y) = String.split s "," in
     { x = R.of_string x; y = R.of_string y }
   with exn ->
-    Exn.fail ~exn "Pt.of_string %S" s
+    fail ~exn "Pt.of_string %S" s
 let lo p1 p2 = { x = R.min_ p1.x p2.x; y = R.min_ p1.y p2.y }
 let hi p1 p2 = { x = R.max_ p1.x p2.x; y = R.max_ p1.y p2.y }
 let sub a b = R.Infix.{ x = a.x - b.x; y = a.y - b.y }
@@ -97,7 +98,7 @@ let of_string s =
     let (a,b) = String.split (String.strip s) " " in
     Pt.of_string a, Pt.of_string b
   with
-    exn -> Exn.fail ~exn "Line.of_string %S" s
+    exn -> fail ~exn "Line.of_string %S" s
 
 let length2 ((a,b) : t) = (* (x - x)^2 + (y - y)^2 no sqrt *)
   R.Infix.(R.sqr (a.x - b.x) + R.sqr (a.y - b.y))

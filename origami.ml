@@ -16,13 +16,13 @@ let read ch =
   in
   { Problem.shape; skel }
 
-let read file = Control.with_open_in_txt file read
+let read file = with_open_in_txt file read
 
 let () =
-  match Action.args with
+  match List.tl @@ Array.to_list Sys.argv with
   | "render"::file::[] ->
     let p = read file in
-    Control.with_open_out_bin (file ^ ".png") (Render.render p)
+    with_open_out_bin (file ^ ".png") (Render.render p)
   | "bb"::file::[] ->
     let p = read file in
     let (lo,hi) = Ops.bounding_box p.shape in
@@ -35,4 +35,4 @@ let () =
       | _ -> assert false
     in
     print_string @@ Solution.show solution
-  | _ -> Exn.fail "wat"
+  | _ -> fail "wat"
