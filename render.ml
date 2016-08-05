@@ -29,12 +29,19 @@ let image_of_skel skel =
 (* 2. Render *)
 
 let render { Problem.shape; skel } ch =
+(*
   let (lo,hi) = Ops.bounding_box shape in
   let bb = Pt.sub hi lo in
   let dim = max (r bb.x) (r bb.x) in
   let view_size = (max dim 1.) *. 1.5 in
   let shift_x = R.Infix.(view_size /. 2. -. (r lo.x +. r (bb.x / R.two))) in
   let shift_y = R.Infix.(view_size /. 2. -. (r lo.y +. r (bb.y / R.two))) in
+*)
+  let (lo,hi) = Ops.bounding_box ([{x=R.zero;y=R.zero}; {x=R.one;y=R.one}] :: shape) in
+  let view_size = 1.25 *. 2. *. List.fold_left max 0. (List.map (fun p -> abs_float @@ 0.5 -. r p) [lo.x; lo.y; hi.x; hi.y]) in
+  let shift_x = view_size /. 2. -. 0.5 in
+  let shift_y = view_size /. 2. -. 0.5 in
+
   let view = Box2.v P2.o (Size2.v view_size view_size) in
   let image = List.fold_left (fun a b -> I.blend b a) (I.const Color.white) [box; image_of_shape shape; image_of_skel skel] in
 (*
