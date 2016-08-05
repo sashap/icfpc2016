@@ -102,7 +102,7 @@ let submit_solutions () =
   let sent = sprintf "data/%s.sent" in
   let out = sprintf "data/%s.out" in
   let result = sprintf "data/%s.result" in
-  let final = sprintf "data/%s.done" in
+  let perfect = sprintf "data/%s.perfect_score" in
   Sys.readdir "data/" |> Array.to_list
   |> List.filter_map (fun s -> if String.ends_with s ".out" then Some (String.slice ~last:(-4) s) else None)
   |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
@@ -113,7 +113,7 @@ let submit_solutions () =
     Std.output_file ~filename:(result s) ~text:res;
     Std.output_file ~filename:(sent s) ~text:sol;
     let rr = (Api_j.solution_of_string res).resemblance in
-    if rr > 0.999999 then Std.output_file ~filename:(final s) ~text:sol;
+    if rr > 0.999999 then Std.output_file ~filename:(perfect s) ~text:sol;
     eprintfn "resemblance %f" rr
   end
 
