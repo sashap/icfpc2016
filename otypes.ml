@@ -8,26 +8,40 @@ type ratio = { a : int; b : int }
 type point = { x : ratio; y : ratio }
 type solution = { src : point list; dst : point list; facets : int list list; }
 
+let rec gcd a b = if b = 0 then a else gcd b (a mod b)
+
 (* ratio *)
 module R = struct
+
 type t = ratio
+
+let simplify ({ a; b } as r) =
+  if a = 0 then { a=0; b=1 } else
+  match gcd a b with
+  | 1 | -1 -> r
+  | n -> { a = a / n; b = b / n }
+
 let make a b =
   assert (b > 0);
-  { a; b }
+  simplify { a; b }
 
 let int n = make n 1
 let zero = int 0
 let one = int 1
 let two = int 2
 
-let show = function {a;b=1} -> sprintf "%d" a | {a=0;_} -> "0" | {a;b} -> sprintf "%d/%d" a b
+let show r =
+  match simplify r with
+  | {a;b=1} -> sprintf "%d" a
+  | {a=0;_} -> "0"
+  | {a;b} -> sprintf "%d/%d" a b
+
 let of_string s =
   match String.split s "/" with
   | exception _ -> make (atoi s) 1
   | a,b -> make (atoi a) (atoi b)
 
 let norm x y = if x.b = y.b then x,y else {a = x.a * y.b; b = x.b * y.b},{a = y.a * x.b; b = y.b * x.b} (* common denominator *)
-(* let simplify x = ? *)
 let mul x y = {a = x.a * y.a ; b = x.b * y.b}
 let div x y = mul x {a = y.b; b = y.a}
 let add x y =

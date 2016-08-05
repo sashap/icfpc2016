@@ -52,3 +52,7 @@ oasis:
 
 %.in.png: %.in
 	./origami.native render $<
+
+.PHONY: redo
+redo:
+	$(MAKE) -B $(patsubst %.in,%.out,$(wildcard data/*.in))
