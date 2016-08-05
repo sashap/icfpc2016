@@ -108,10 +108,21 @@ let submit_solutions () =
   let out = sprintf "data/%s.out" in
   let result = sprintf "data/%s.result" in
   let perfect = sprintf "data/%s.perfect_score" in
+  let best = sprintf "data/%s.best" in
   Sys.readdir "data/" |> Array.to_list |> List.sort
   |> List.filter_map (fun s -> if String.ends_with s ".out" then Some (String.slice ~last:(-4) s) else None)
   |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
   |> List.iter begin fun s ->
+    let prev_r =
+      match Std.input_file (result s) with
+      | exception _ -> 0.
+      | s -> (Api_j.solution_of_string s).resemblance
+    in
+    let best_r =
+      match Std.input_file (best s) with
+      | exception _ -> 0.
+      | s -> (Api_j.solution_of_string s).resemblance
+    in
     eprintfn "sending %s ..." (out s);
     let sol = Std.input_file @@ out s in
     let res = send ~sol:s sol in
@@ -119,7 +130,9 @@ let submit_solutions () =
     Std.output_file ~filename:(sent s) ~text:sol;
     let rr = (Api_j.solution_of_string res).resemblance in
     if rr > 0.999999 then Std.output_file ~filename:(perfect s) ~text:sol;
-    eprintfn "resemblance %f" rr
+    if rr > best_r then Std.output_file ~filename:(best s) ~text:res;
+    let msg = if (best_r > 0. && rr > best_r) || (prev_r > 0. && rr > prev_r) then "improved " else "" in
+    eprintfn "%sresemblance %g -> %g (best was %g)" msg prev_r rr best_r
   end
 
 let submit_problems () =
