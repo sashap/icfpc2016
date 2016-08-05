@@ -103,8 +103,11 @@ let resemble a b =
 
 let mult_box (lo,hi) f =
   let bb = Pt.sub hi lo in
-  let bb = Pt.mul bb f in
-  lo, Pt.add lo bb
+  let cc = Pt.div (Pt.add hi lo) R.two in
+  let new_bb = Pt.mul bb f in
+  let new_cc = Pt.div bb R.two in
+  let offset = Pt.sub cc new_cc in
+  offset, Pt.add offset new_bb
 
 let best_box shape =
   let box = bounding_box shape in
