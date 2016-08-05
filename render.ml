@@ -7,7 +7,7 @@ open Otypes
 
 let size = Size2.v 200. 200. (* mm *)
 
-let r {a;b} = Z.(to_float (a / b))
+let r {a;b} = Z.to_float a /. Z.to_float b
 let pt {x;y} = P2.v (r x) (r y)
 
 let path_of_poly = function
