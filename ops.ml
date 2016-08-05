@@ -101,12 +101,19 @@ let resemble a b =
   done;
   float !nr_inter /. float !nr_union
 
-let mult_box (lo,hi) f =
+let mult_box (lo,hi) var f =
   let bb = Pt.sub hi lo in
   let cc = Pt.div (Pt.add hi lo) R.two in
   let new_bb = Pt.mul bb f in
   let new_cc = Pt.div bb R.two in
-  let offset = Pt.sub cc new_cc in
+  let offset = match var with
+  | 0 -> Pt.sub cc new_cc
+  | 1 -> lo
+  | 2 -> Pt.sub hi new_bb
+  | 3 -> { x = lo.x; y = (Pt.sub hi new_bb).y }
+  | 4 -> { x = (Pt.sub hi new_bb).x; y = lo.y }
+  | _ -> assert false
+  in
   offset, Pt.add offset new_bb
 
 let best_box shape =
@@ -117,7 +124,8 @@ let best_box shape =
   let best = ref box in
   for i = 99 downto 50 do
     let f = R.zmake i 100 in
-    let new_box = mult_box box f in
+    for j = 0 to 4 do
+    let new_box = mult_box box j f in
     let r' = calc new_box in
     if r' > !r then
     begin
@@ -125,6 +133,7 @@ let best_box shape =
       r := r';
       best := new_box
     end;
+    done;
   done;
   eprintfn "best_bb: %g -> %g" init !r;
   !best
