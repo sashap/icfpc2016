@@ -92,9 +92,14 @@ let get_all_tasks () =
       Std.output_file ~filename ~text:(get_blob p.problem_spec_hash)
   end
 
-let send ~task s =
-  let post = ["problem_id", task; "solution_spec", s] in
-  get ~post "solution/submit"
+let send ?sol ?prob s =
+  let api,task = match sol, prob with
+    | Some s , None -> "solution/submit", ("problem_id", s)
+    | None, Some p -> "problem/submit", ("publish_time", p)
+    | _ -> failwith "problem *OR* solution!"
+  in
+  let post = [ task; "solution_spec", s] in
+  get ~post api
 
 let different f1 f2 = Std.input_file f1 <> Std.input_file f2
 
@@ -109,7 +114,7 @@ let submit_solutions () =
   |> List.iter begin fun s ->
     eprintfn "sending %s ..." (out s);
     let sol = Std.input_file @@ out s in
-    let res = send ~task:s sol in
+    let res = send ~sol:s sol in
     Std.output_file ~filename:(result s) ~text:res;
     Std.output_file ~filename:(sent s) ~text:sol;
     let rr = (Api_j.solution_of_string res).resemblance in
@@ -117,3 +122,17 @@ let submit_solutions () =
     eprintfn "resemblance %f" rr
   end
 
+let submit_problems () =
+  let sent = sprintf "problems/%s.sent" in
+  let out = sprintf "problems/%s.out" in
+  let result = sprintf "problems/%s.result" in
+  Sys.readdir "problems/" |> Array.to_list
+  |> List.filter_map (fun s -> if String.ends_with s ".out" then Some (String.slice ~last:(-4) s) else None)
+  |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
+  |> List.iter begin fun s ->
+    eprintfn "sending %s ..." (out s);
+    let prob = Std.input_file @@ out s in
+    let res = send ~prob:s prob in
+    Std.output_file ~filename:(result s) ~text:res;
+    Std.output_file ~filename:(sent s) ~text:prob;
+  end
