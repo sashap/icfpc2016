@@ -4,43 +4,44 @@ open Prelude
 
 let atoi s = try int_of_string @@ String.strip s with _ -> fail "atoi %S" s
 
-type ratio = { a : int; b : int }
+type ratio = { a : Z.t; b : Z.t }
 type point = { x : ratio; y : ratio }
 type solution = { src : point list; dst : point list; facets : int list list; }
 
-let rec gcd a b = if b = 0 then a else gcd b (a mod b)
+let rec gcd a b : Z.t =
+  if b = Z.zero then a else gcd b (Z.(mod) a b)
 
 (* ratio *)
 module R = struct
-
+open Z
 type t = ratio
 
 let simplify ({ a; b } as r) =
-  let ({a;b} as r) = if b < 0 then { a = - a; b = - b } else r in
-  if a = 0 then { a=0; b=1 } else
-  match abs (gcd a b) with
-  | 1 -> r
-  | n -> { a = a / n; b = b / n }
+  let ({a;b} as r) = if b < Z.zero then { a = Z.neg a; b = Z.neg b } else r in
+  if a = Z.zero then { a=Z.zero; b=Z.one } else
+  match Z.abs (gcd a b) with
+  | n when n = Z.one -> r
+  | n -> Z.{ a = a / n; b = b / n }
 
 let make a b =
-  assert (b > 0);
+  assert (b > Z.zero);
   simplify { a; b }
 
-let int n = make n 1
-let zero = int 0
-let one = int 1
-let two = int 2
+let int n = make n Z.one
+let zero = int Z.zero
+let one = int Z.one
+let two = int @@ Z.of_int 2
 
 let show r =
   match simplify r with
-  | {a;b=1} -> sprintf "%d" a
-  | {a=0;_} -> "0"
-  | {a;b} -> sprintf "%d/%d" a b
+  | {a;b} when b = Z.one -> sprintf "%s" (Z.to_string a)
+  | {a;_} when a = Z.zero -> "0"
+  | {a;b} -> sprintf "%s/%s" (Z.to_string a) (Z.to_string b)
 
 let of_string s =
   match String.split s "/" with
-  | exception _ -> make (atoi s) 1
-  | a,b -> make (atoi a) (atoi b)
+  | exception _ -> make (Z.of_string s) Z.one
+  | a,b -> make (Z.of_string a) (Z.of_string b)
 
 let norm x y = if x.b = y.b then x,y else {a = x.a * y.b; b = x.b * y.b},{a = y.a * x.b; b = y.b * x.b} (* common denominator *)
 let mul x y = {a = x.a * y.a ; b = x.b * y.b}
@@ -56,19 +57,19 @@ let sub x y =
   {a = x.a - y.a; b = x.b}
 
 let divide x y =
-  assert (x.a >= 0);
+  assert (x.a >= Z.zero);
   let x,y = norm x y in
   x.a / y.a, { a = (x.a mod y.a); b = x.b }
 
 let sqr x = mul x x
 let eq x y = let x,y = norm x y in x.a = y.a
-let is_zero x = x.a = 0
+let is_zero x = x.a = Z.zero
 
 let cmp a b = let (a,b) = norm a b in a.a - b.a
-let gt a b = cmp a b > 0
-let lt a b = cmp a b < 0
-let ge a b = cmp a b >= 0
-let le a b = cmp a b <= 0
+let gt a b = cmp a b > Z.zero
+let lt a b = cmp a b < Z.zero
+let ge a b = cmp a b >= Z.zero
+let le a b = cmp a b <= Z.zero
 
 let min_ a b = if gt b a then a else b
 let max_ a b = if gt a b then a else b
@@ -123,11 +124,12 @@ let length2 ((a,b) : t) = (* (x - x)^2 + (y - y)^2 no sqrt *)
 
 let which_side_of_line (a,b) pt =
   let r = R.Infix.(((b.x - a.x) * (pt.y - a.y)) - ((pt.x - a.x) * (b.y - a.y))).a in
-  match r with
-  | 0 -> On
-  | -1 -> Left
-  | 1 -> Right
-  | _ -> assert false
+  if r = Z.zero then
+    On
+  else if r < Z.zero then
+    Left
+  else
+    Right
 
 let is_on_line (a,b) pt =
   which_side_of_line (a,b) pt = On

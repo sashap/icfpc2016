@@ -15,4 +15,4 @@ Executable origami
   Path: .
   MainIs: origami.ml
   CompiledObject: best
-  BuildDepends: extlib, vg.cairo, curl, atdgen
+  BuildDepends: extlib, vg.cairo, curl, atdgen, zarith
