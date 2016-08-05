@@ -46,3 +46,6 @@ oasis:
 
 %.out: %.in
 	./origami.native solve bb $< > $@ || rm $@
+
+%.done: %.out
+	cp $< $@
