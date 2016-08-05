@@ -106,14 +106,13 @@ let send ?sol ?prob s =
 
 let different f1 f2 = Std.input_file f1 <> Std.input_file f2
 
-let submit_solutions () =
+let submit_solutions l =
   let sent = sprintf "data/%s.sent" in
   let out = sprintf "data/%s.out" in
   let result = sprintf "data/%s.result" in
   let perfect = sprintf "data/%s.perfect_score" in
   let best = sprintf "data/%s.best" in
-  Sys.readdir "data/" |> Array.to_list |> List.sort
-  |> List.filter_map (fun s -> if String.ends_with s ".out" then Some (String.slice ~last:(-4) s) else None)
+  l
   |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
   |> List.iter begin fun s ->
     let prev_r =
@@ -137,6 +136,12 @@ let submit_solutions () =
     let msg = if best_r > 0. then (if rr > best_r then "IMPROVED " else "") else "new " in
     eprintfn "%sresemblance %g -> %g (best was %g)" msg prev_r rr best_r
   end
+
+let submit_all_solutions () =
+  Sys.readdir "data/" |> Array.to_list
+  |> List.filter_map (fun s -> if String.ends_with s ".out" then Some (String.slice ~last:(-4) s) else None)
+  |> List.sort
+  |> submit_solutions
 
 let submit_problems () =
   let sent = sprintf "problems/%s.sent" in

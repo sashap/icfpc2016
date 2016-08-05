@@ -24,7 +24,8 @@ let () =
     print_string @@ Solution.show solution
   | "hello"::[] -> printfn "%s" (Api.get "hello")
   | "get_tasks"::[] -> Api.get_all_tasks ()
-  | "submit_s"::[] -> Api.submit_solutions ()
+  | "submit_s"::[] -> Api.submit_all_solutions ()
+  | "submit_s"::l -> Api.submit_solutions l
   | "submit_p"::[] -> Api.submit_problems ()
   | "is_inside"::file::pt::[] ->
     let p = Problem.input file in
