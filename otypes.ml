@@ -64,7 +64,12 @@ let sqr x = mul x x
 let eq x y = let x,y = norm x y in x.a = y.a
 let is_zero x = x.a = 0
 
-let gt a b = (sub a b).a > 0
+let cmp a b = let (a,b) = norm a b in a.a - b.a
+let gt a b = cmp a b > 0
+let lt a b = cmp a b < 0
+let ge a b = cmp a b >= 0
+let le a b = cmp a b <= 0
+
 let min_ a b = if gt b a then a else b
 let max_ a b = if gt a b then a else b
 
@@ -130,6 +135,22 @@ end
 
 module Problem = struct
 type t = { shape : Poly.t list; skel : Line.t list; }
+
+let input file =
+  let readlni ch = input_line ch |> String.strip |> int_of_string in
+  let read ch =
+    let shape =
+      List.init (readlni ch) begin fun _ ->
+        List.init (readlni ch) (fun _ -> Pt.of_string @@ input_line ch)
+      end
+    in
+    let skel =
+      List.init (readlni ch) (fun _ -> Line.of_string @@ input_line ch)
+    in
+    { shape; skel }
+  in
+  with_open_in_txt file read
+
 end
 
 module Solution = struct
