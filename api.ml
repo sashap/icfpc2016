@@ -108,7 +108,7 @@ let submit_solutions () =
   let out = sprintf "data/%s.out" in
   let result = sprintf "data/%s.result" in
   let perfect = sprintf "data/%s.perfect_score" in
-  Sys.readdir "data/" |> Array.to_list
+  Sys.readdir "data/" |> Array.to_list |> List.sort
   |> List.filter_map (fun s -> if String.ends_with s ".out" then Some (String.slice ~last:(-4) s) else None)
   |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
   |> List.iter begin fun s ->
@@ -126,7 +126,7 @@ let submit_problems () =
   let sent = sprintf "problems/%s.sent" in
   let out = sprintf "problems/%s.out" in
   let result = sprintf "problems/%s.result" in
-  Sys.readdir "problems/" |> Array.to_list
+  Sys.readdir "problems/" |> Array.to_list |> List.sort
   |> List.filter_map (fun s -> if String.ends_with s ".out" then Some (String.slice ~last:(-4) s) else None)
   |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
   |> List.iter begin fun s ->
