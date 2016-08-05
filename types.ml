@@ -30,7 +30,7 @@ end
 
 module Poly = struct
 type t = Pt.t list
-let make x = x
+let make = function [] -> assert false | x -> x
 end
 
 module Line = struct

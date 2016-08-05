@@ -13,10 +13,11 @@ let read ch =
   let skel =
     List.init (readlni ch) (fun _ -> Line.of_string @@ input_line ch)
   in
-  let _ = { Problem.shape; skel } in
-  ()
+  { Problem.shape; skel }
 
 let () =
   match Action.args with
-  | "read"::file::[] -> Control.with_open_in_txt file read
+  | "render"::file::[] ->
+    let p = Control.with_open_in_txt file read in
+    Control.with_open_out_bin (file ^ ".png") (Render.render p.shape)
   | _ -> Exn.fail "wat"

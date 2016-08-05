@@ -7,10 +7,10 @@ License:     PROP
 Plugins:     DevFiles (0.4)
 BuildTools:  ocamlbuild
 AlphaFeatures: ocamlbuild_more_args
-XOCamlbuildExtraArgs: "-cflags '-w +a-4-48'"
+XOCamlbuildExtraArgs: "-cflags '-w +a-4-40-42-48'"
 
 Executable origami
   Path: .
   MainIs: origami.ml
   CompiledObject: best
-  BuildDepends: devkit, threads
+  BuildDepends: devkit, threads, vg.cairo
