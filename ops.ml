@@ -23,6 +23,9 @@ let bounding_box shape =
   | x::xs ->
     List.fold_left (fun (alo,ahi) p -> Pt.lo p alo, Pt.hi p ahi) (x,x) xs
 
+(* stupid *)
+let poly_of_box (lo,hi) = [ lo; { lo with y = hi.y }; hi; { hi with y = lo.y } ]
+
 let fold_bb (lo,hi) =
   let bb = Pt.lo Pt.one (Pt.sub hi lo) in
   let rec loop acc cur r =
@@ -57,7 +60,7 @@ let fold_bb (lo,hi) =
     let y = wrap p.y bb.y in
     Pt.add lo {x;y} end
   in
-  { src=Array.to_list vs; dst; facets; }
+  { src=Array.to_list vs; dst; facets; shape = [poly_of_box (lo,hi)]; }
 
 let is_inside p v =
   let v = Array.of_list v in
@@ -93,3 +96,21 @@ let resemble a b =
     if a || b then incr nr_union
   done;
   float !nr_inter /. float !nr_union
+
+let mult_box (lo,hi) f =
+  let bb = Pt.sub hi lo in
+  let bb = Pt.mul bb f in
+  lo, Pt.add lo bb
+
+let best_box shape =
+  let box = bounding_box shape in
+  let calc box = resemble [poly_of_box box] shape in
+  let r = ref @@ calc box in
+  let best = ref box in
+  for i = 99 downto 50 do
+    let f = R.zmake i 100 in
+    let new_box = mult_box box f in
+    let r' = calc new_box in
+    if r' > !r then (r := r'; best := new_box);
+  done;
+  !best

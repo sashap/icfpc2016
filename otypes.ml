@@ -6,7 +6,7 @@ let atoi s = try int_of_string @@ String.strip s with _ -> fail "atoi %S" s
 
 type ratio = { a : Z.t; b : Z.t }
 type point = { x : ratio; y : ratio }
-type solution = { src : point list; dst : point list; facets : int list list; }
+type solution = { src : point list; dst : point list; facets : int list list; shape : point list list; }
 
 let rec gcd a b : Z.t =
   if b = Z.zero then a else gcd b (Z.(mod) a b)
@@ -101,6 +101,7 @@ let lo p1 p2 = { x = R.min_ p1.x p2.x; y = R.min_ p1.y p2.y }
 let hi p1 p2 = { x = R.max_ p1.x p2.x; y = R.max_ p1.y p2.y }
 let sub a b = R.Infix.{ x = a.x - b.x; y = a.y - b.y }
 let add a b = R.Infix.{ x = a.x + b.x; y = a.y + b.y }
+let mul a k = R.Infix.{ x = a.x * k; y = a.y * k }
 let eq a b = R.eq a.x b.x && R.eq a.y b.y
 let one = {x=R.one;y=R.one}
 let zero = {x=R.zero;y=R.zero}
@@ -161,7 +162,7 @@ end
 
 module Solution = struct
 type t = solution
-let show { src; dst; facets } =
+let show { src; dst; facets; shape=_ } =
   let io = IO.output_string () in
   IO.printf io "%d\n" (List.length src);
   List.iter (fun p -> IO.printf io "%s\n" (Pt.show p)) src;
