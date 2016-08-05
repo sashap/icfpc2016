@@ -1,0 +1,18 @@
+
+make redo - to renegerate data/*.out files
+
+
+./origami subcommands :
+
+ get_tasks - refresh available tasks
+ submit - submit data/*.out
+
+
+Files in data/ :
+
+ N.in - problem text
+ N.in.png - problem picture
+ N.out - proposed solution
+ N.sent - submitted solution
+ N.result - received answer to solution
+ N.done - perfect score marker
