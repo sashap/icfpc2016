@@ -1,5 +1,6 @@
 open ExtLib
 open Otypes
+open Prelude
 
 let mirror (l1,l2) pt =
   let open R.Infix in
@@ -88,7 +89,7 @@ let resemble a b =
   let bb = Pt.sub hi lo in
   let nr_inter = ref 0 in
   let nr_union = ref 0 in
-  for _ = 0 to 1_000 do
+  for _ = 0 to 2_000 do
     let pt = { x = R.add lo.x (R.random bb.x); y = R.add lo.y (R.random bb.y) } in
     let a = is_inside_shape pt a in
     let b = is_inside_shape pt b in
@@ -105,12 +106,17 @@ let mult_box (lo,hi) f =
 let best_box shape =
   let box = bounding_box shape in
   let calc box = resemble [poly_of_box box] shape in
-  let r = ref @@ calc box in
+  let init = try calc box with _exn -> 0. in
+  let r = ref init in
   let best = ref box in
   for i = 99 downto 50 do
     let f = R.zmake i 100 in
     let new_box = mult_box box f in
-    let r' = calc new_box in
-    if r' > !r then (r := r'; best := new_box);
+    try
+      let r' = calc new_box in
+      if r' > !r then (r := r'; best := new_box);
+    with
+      exn -> eprintfn "exn %d %s" i (Printexc.to_string exn)
   done;
+  eprintfn "best_bb: %g -> %g" init !r;
   !best
