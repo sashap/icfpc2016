@@ -136,7 +136,7 @@ let submit_solutions l =
     if rr > 0.999999 then Std.output_file ~filename:(perfect s) ~text:sol;
     if rr > best_r then Std.output_file ~filename:(best s) ~text:res;
     let msg = if best_r > 0. then (if rr > best_r then "IMPROVED " else "") else "new " in
-    eprintfn "%sresemblance %g -> %g (best was %g)" msg prev_r rr best_r
+    eprintfn "%sresemblance %g -> %g (prev %g)" msg best_r rr prev_r
   end
 
 let submit_all_solutions () =
