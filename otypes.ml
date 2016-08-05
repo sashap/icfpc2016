@@ -76,7 +76,16 @@ let le a b = cmp a b <= Z.zero
 let min_ a b = if gt b a then a else b
 let max_ a b = if gt a b then a else b
 
-let random {a;b} = make (Z.of_int @@ Random.int @@ Z.to_int a) b
+let z_random a =
+  try
+    match Z.to_int a with
+    | exception _ -> Z.of_float @@ Random.float @@ Z.to_float a
+    | a when a >= 1073741824 -> Z.of_float @@ Random.float @@ float a
+    | a -> Z.of_int @@ Random.int a
+  with exn -> fail "z_random %S : %s" (Z.to_string a) (Printexc.to_string exn)
+
+let random {a;b} =
+  make (z_random a) b
 
 module Infix = struct
 let (-) = sub
