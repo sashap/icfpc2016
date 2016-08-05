@@ -1,0 +1,4 @@
+B _build
+B +threads
+PKG devkit
+FLG -w +a-4-48

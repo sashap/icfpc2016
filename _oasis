@@ -1,0 +1,16 @@
+OASISFormat: 0.4
+Name:        icfpc2016
+Version:     1
+Synopsis:    ICFPC 2016
+Authors:     HET
+License:     PROP
+Plugins:     DevFiles (0.4)
+BuildTools:  ocamlbuild
+AlphaFeatures: ocamlbuild_more_args
+XOCamlbuildExtraArgs: "-cflags '-w +a-4-48'"
+
+Executable origami
+  Path: .
+  MainIs: origami.ml
+  CompiledObject: best
+  BuildDepends: devkit, threads
