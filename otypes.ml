@@ -19,7 +19,7 @@ let zero = int 0
 let one = int 1
 let two = int 2
 
-let show = function {a;b=1} -> sprintf "%d" a | {a;b} -> sprintf "%d/%d" a b
+let show = function {a;b=1} -> sprintf "%d" a | {a=0;_} -> "0" | {a;b} -> sprintf "%d/%d" a b
 let of_string s =
   match String.split s "/" with
   | exception _ -> make (atoi s) 1
