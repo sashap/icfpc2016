@@ -1,6 +1,6 @@
 open ExtLib
 
-open Types
+open Otypes
 
 let readlni ch = input_line ch |> String.strip |> int_of_string
 

@@ -1,7 +1,7 @@
 open Gg
 open Vg
 
-open Types
+open Otypes
 
 (* 1. Define your image *)
 
