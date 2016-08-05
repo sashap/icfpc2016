@@ -76,6 +76,8 @@ let le a b = cmp a b <= Z.zero
 let min_ a b = if gt b a then a else b
 let max_ a b = if gt a b then a else b
 
+let random {a;b} = make (Z.of_int @@ Random.int @@ Z.to_int a) b
+
 module Infix = struct
 let (-) = sub
 let (+) = add

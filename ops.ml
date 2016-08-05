@@ -76,3 +76,20 @@ let is_inside p v =
     end
   done;
   !r <> 0
+
+(* ignoring holes *)
+let is_inside_shape p = List.exists (is_inside p)
+
+let resemble a b =
+  let lo,hi = bounding_box @@ List.concat [a;b] in
+  let bb = Pt.sub hi lo in
+  let nr_inter = ref 0 in
+  let nr_union = ref 0 in
+  for _ = 0 to 1_000 do
+    let pt = { x = R.add lo.x (R.random bb.x); y = R.add lo.y (R.random bb.y) } in
+    let a = is_inside_shape pt a in
+    let b = is_inside_shape pt b in
+    if a && b then incr nr_inter;
+    if a || b then incr nr_union
+  done;
+  float !nr_inter /. float !nr_union

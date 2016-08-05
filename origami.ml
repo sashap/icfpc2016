@@ -4,6 +4,7 @@ open Prelude
 open Otypes
 
 let () =
+  Random.self_init ();
   match List.tl @@ Array.to_list Sys.argv with
   | "render"::file::[] ->
     let p = Problem.input file in
@@ -27,4 +28,8 @@ let () =
   | "is_inside"::file::pt::[] ->
     let p = Problem.input file in
     List.map (Ops.is_inside (Pt.of_string pt)) p.shape |> List.iter (printfn "%B")
+  | "resemble"::a::b::[] ->
+    let a = Problem.input a in
+    let b = Problem.input b in
+    printfn "%g" (Ops.resemble a.shape b.shape)
   | _ -> fail "wat"
