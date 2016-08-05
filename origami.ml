@@ -19,5 +19,5 @@ let () =
   match Action.args with
   | "render"::file::[] ->
     let p = Control.with_open_in_txt file read in
-    Control.with_open_out_bin (file ^ ".png") (Render.render p.shape)
+    Control.with_open_out_bin (file ^ ".png") (Render.render p)
   | _ -> Exn.fail "wat"

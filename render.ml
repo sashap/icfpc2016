@@ -15,18 +15,22 @@ let path_of_poly = function
 | [] -> assert false
 | x::xs -> P.close @@ List.fold_left (fun acc z -> P.line (pt z) acc) (P.sub (pt x) P.empty) xs
 
+let box =
+  let path = P.rect (Box2.v P2.o (Size2.v 1. 1.)) P.empty in
+  I.const (Color.gray 0.2) >> I.cut ~area:(`O { P.o with P.width = 0.001 }) path
+
 let image_of_shape shape =
-  let paths = List.map path_of_poly shape in
-  let box = P.rect (Box2.v P2.o (Size2.v 1. 1.)) P.empty in
-  let path = List.fold_left (fun acc p -> P.append p acc) P.empty paths in
-  I.blend
-    (I.const Color.black >> I.cut ~area:(`O { P.o with P.width = 0.005 }) path)
-    (I.const (Color.gray 0.2) >> I.cut ~area:(`O { P.o with P.width = 0.001 }) box)
+  let path = List.fold_left (fun acc p -> P.append (path_of_poly p) acc) P.empty shape in
+  I.const Color.black >> I.cut ~area:(`O { P.o with P.width = 0.008 }) path
+
+let image_of_skel skel =
+  let path = List.fold_left (fun acc (a,b) -> P.line (pt b) @@ P.sub (pt a) acc) P.empty skel in
+  I.const Color.red >> I.cut ~area:(`O { P.o with P.width = 0.004 }) path
 
 (* 2. Render *)
 
-let render shape ch =
-  let image = image_of_shape shape in
+let render { Problem.shape; skel } ch =
+  let image = List.fold_left I.blend box [image_of_shape shape; image_of_skel skel] in
 (*
   let xmp = Vgr.xmp ~title:"Polygon" () in
   let target = Vgr_svg.target ~xmp () in
