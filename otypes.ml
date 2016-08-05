@@ -27,6 +27,8 @@ let make a b =
   assert (b > Z.zero);
   simplify { a; b }
 
+let zmake a b = make (Z.of_int a) (Z.of_int b)
+
 let int n = make n Z.one
 let zero = int Z.zero
 let one = int Z.one
@@ -122,17 +124,17 @@ let of_string s =
 let length2 ((a,b) : t) = (* (x - x)^2 + (y - y)^2 no sqrt *)
   R.Infix.(R.sqr (a.x - b.x) + R.sqr (a.y - b.y))
 
-let which_side_of_line (a,b) pt =
+let which_side (a,b) pt =
   let r = R.Infix.(((b.x - a.x) * (pt.y - a.y)) - ((pt.x - a.x) * (b.y - a.y))).a in
   if r = Z.zero then
     On
   else if r < Z.zero then
-    Left
-  else
     Right
+  else
+    Left
 
 let is_on_line (a,b) pt =
-  which_side_of_line (a,b) pt = On
+  which_side (a,b) pt = On
 end
 
 module Problem = struct

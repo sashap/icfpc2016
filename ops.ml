@@ -12,7 +12,7 @@ let mirror (l1,l2) pt =
 
 let fold_over_line ln poly =
   List.map begin fun pt ->
-    match Line.which_side_of_line ln pt with
+    match Line.which_side ln pt with
     | Left -> mirror ln pt
     | On | Right -> pt
   end poly
