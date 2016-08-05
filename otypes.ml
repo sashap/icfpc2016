@@ -85,6 +85,14 @@ let z_random a =
   with exn -> fail "z_random %S : %s" (Z.to_string a) (Printexc.to_string exn)
 
 let random {a;b} =
+  assert (a <> Z.zero);
+  let (a,b) =
+    if a >= Z.of_int 1_000 then
+      a, b
+    else
+      let n = Z.of_int 1_000 / a in
+      Z.mul a n, Z.mul b n
+  in
   make (z_random a) b
 
 module Infix = struct
