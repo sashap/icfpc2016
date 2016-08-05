@@ -127,7 +127,11 @@ end
 module Poly = struct
 type t = Pt.t list
 let make = function [] -> assert false | x -> x
+let show l = String.concat " " @@ List.map Pt.show l
+let of_string s = String.nsplit s " " |> List.map Pt.of_string
 end
+
+let orig = Poly.of_string "0,0 1,0 1,1 0,1"
 
 type side = On | Left | Right
 

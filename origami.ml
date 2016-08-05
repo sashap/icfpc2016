@@ -7,8 +7,7 @@ let () =
   Random.self_init ();
   match List.tl @@ Array.to_list Sys.argv with
   | "render"::file::[] ->
-    let p = Problem.input file in
-    with_open_out_bin (file ^ ".png") (Render.render p)
+    Render.render_problem (Problem.input file) (file ^ ".png")
   | "bb"::file::[] ->
     let p = Problem.input file in
     let (lo,hi) = Ops.bounding_box p.shape in

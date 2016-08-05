@@ -1,6 +1,7 @@
 open Gg
 open Vg
 
+open Prelude
 open Otypes
 
 (* 1. Define your image *)
@@ -55,3 +56,6 @@ let render { Problem.shape; skel } ch =
   let r = Vgr.create ~warn target (`Channel ch) in
   ignore (Vgr.render r (`Image (size, view, I.move (P2.v shift_x shift_y) image)));
   ignore (Vgr.render r `End)
+
+let render_problem p file = with_open_out_bin file (render p)
+let render_poly p file = with_open_out_bin file (render { Problem.shape = [p]; skel = [] })
