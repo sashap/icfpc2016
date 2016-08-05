@@ -53,6 +53,11 @@ oasis:
 %.in.png: %.in
 	./origami.native render $<
 
+all_out=$(patsubst %.in,%.out,$(wildcard data/*.in))
+all_perfect_out=$(patsubst %.perfect_score,%.out,$(wildcard data/*.perfect_score))
+
+#all_png=$(patsubst %.in,%.in.png,$(wildcard data/*.in))
+
 .PHONY: redo
 redo:
-	$(MAKE) -B $(sort $(patsubst %.in,%.out,$(wildcard data/*.in)))
+	$(MAKE) -B $(sort $(filter-out $(all_perfect_out),$(all_out)))
