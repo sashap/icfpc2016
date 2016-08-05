@@ -3,9 +3,12 @@ open ExtLib
 
 let atoi s = try int_of_string @@ String.strip s with _ -> Exn.fail "atoi %S" s
 
+type ratio = { a : int; b : int }
+type point = { x : ratio; y : ratio }
+
 (* ratio *)
 module R = struct
-type t = { a : int; b : int }
+type t = ratio
 let make a b =
   assert (b > 0);
   { a; b }
@@ -32,11 +35,19 @@ let sub x y =
 
 let sqr x = mul x x
 let eq x y = let x,y = norm x y in x.a = y.a
+
+module Infix = struct
+let (-) = sub
+let (+) = add
+let ( * ) = mul
+let (/) = div
+end
+
 end
 
 (* point *)
 module Pt = struct
-type t = { x : R.t; y : R.t }
+type t = point
 let show {x;y} = sprintf "%s,%s" (R.show x) (R.show y)
 let of_string s =
   try
@@ -51,6 +62,8 @@ type t = Pt.t list
 let make = function [] -> assert false | x -> x
 end
 
+type side = On | Left | Right
+
 module Line = struct
 type t = Pt.t * Pt.t
 let make a b = a,b
@@ -62,15 +75,18 @@ let of_string s =
     exn -> Exn.fail ~exn "Line.of_string %S" s
 
 let length2 ((a,b) : t) = (* (x - x)^2 + (y - y)^2 no sqrt *)
-  let open Pt in
-  R.add (R.sqr (R.sub a.x b.x)) (R.sqr (R.sub a.y b.y))
+  R.Infix.(R.sqr (a.x - b.x) + R.sqr (a.y - b.y))
 
-let which_side_of_line (a,b) pt = (* -1 - left , 1 - right , 0 - on *)
-  let open Pt in
-  (R.sub (R.mul (R.sub b.x a.x) (R.sub pt.y a.y)) (R.mul (R.sub pt.x a.x) (R.sub b.y a.y))).a
+let which_side_of_line (a,b) pt =
+  let r = R.Infix.(((b.x - a.x) * (pt.y - a.y)) - ((pt.x - a.x) * (b.y - a.y))).a in
+  match r with
+  | 0 -> On
+  | -1 -> Left
+  | 1 -> Right
+  | _ -> assert false
 
 let is_on_line (a,b) pt =
-  which_side_of_line (a,b) pt = 0
+  which_side_of_line (a,b) pt = On
 end
 
 module Problem = struct

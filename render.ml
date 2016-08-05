@@ -10,8 +10,8 @@ let size = Size2.v 200. 200. (* mm *)
 let shift = 0.25
 let view = let l = (1.+.2.*.shift) in Box2.v P2.o (Size2.v l l)
 
-let r {R.a;b} = float a /. float b
-let pt {Pt.x;y} = P2.v (r x) (r y)
+let r {a;b} = float a /. float b
+let pt {x;y} = P2.v (r x) (r y)
 
 let path_of_poly = function
 | [] -> assert false
