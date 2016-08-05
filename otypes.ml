@@ -16,9 +16,10 @@ module R = struct
 type t = ratio
 
 let simplify ({ a; b } as r) =
+  let ({a;b} as r) = if b < 0 then { a = - a; b = - b } else r in
   if a = 0 then { a=0; b=1 } else
-  match gcd a b with
-  | 1 | -1 -> r
+  match abs (gcd a b) with
+  | 1 -> r
   | n -> { a = a / n; b = b / n }
 
 let make a b =
