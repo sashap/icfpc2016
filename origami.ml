@@ -27,4 +27,12 @@ let () =
     let p = read file in
     let (lo,hi) = Ops.bounding_box p.shape in
     printfn "%s %s" (Pt.show lo) (Pt.show hi)
+  | "solve"::meth::file::[] ->
+    let p = read file in
+    let solution =
+      match meth with
+      | "bb" -> Ops.bounding_box p.shape |> Ops.fold_bb
+      | _ -> assert false
+    in
+    print_string @@ Solution.show solution
   | _ -> Exn.fail "wat"
