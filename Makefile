@@ -55,4 +55,4 @@ oasis:
 
 .PHONY: redo
 redo:
-	$(MAKE) -B $(patsubst %.in,%.out,$(wildcard data/*.in))
+	$(MAKE) -B $(sort $(patsubst %.in,%.out,$(wildcard data/*.in)))

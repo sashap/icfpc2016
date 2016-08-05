@@ -57,11 +57,8 @@ let sub x y =
 
 let divide x y =
   assert (x.a >= 0);
-  let rec loop (n,cur) y =
-    let next = sub cur y in
-    if next.a < 0 then n,cur else loop (n+1,next) y
-  in
-  loop (0,x) y
+  let x,y = norm x y in
+  x.a / y.a, { a = (x.a mod y.a); b = x.b }
 
 let sqr x = mul x x
 let eq x y = let x,y = norm x y in x.a = y.a
