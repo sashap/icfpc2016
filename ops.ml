@@ -125,3 +125,29 @@ let best_box shape =
   done;
   eprintfn "best_bb: %g -> %g" init !r;
   !best
+
+let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
+ let open R.Infix in
+ let get_coefs a b =
+   let k = b.y - a.y in
+   let n = a.x - b.x in
+   let c = (k * a.x) + (n * a.y) in
+   (k,n,c)
+ in
+ let get_ord f s = if f > s then f,s else s,f in
+ let k1,n1,c1 = get_coefs a1 b1 in
+ let k2,n2,c2 = get_coefs a2 b2 in
+ match (k1 * n2) - (k2 * n1) with
+ | det when det = R.zero -> None
+ | det ->
+   let x = ((n2*c1) - (n1*c2))/det in
+   let y = ((k1*c2) - (k2*c1))/det in
+   let x1g,x1s = get_ord a1.x b1.x in
+   let y1g,y1s = get_ord a1.y b1.y in
+   let x2g,x2s = get_ord a2.x b2.x in
+   let y2g,y2s = get_ord a2.y b2.y in
+   if (x <= x1g) && (x >= x1s) && (x <= x2g) && (x >= x2s) &&
+      (y <= y1g) && (y >= y1s) && (y <= y2g) && (y >= y2s) then
+     Some {x;y}
+   else
+     None
