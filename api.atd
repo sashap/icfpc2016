@@ -1,0 +1,45 @@
+type snapshot = { snapshot_time : int; snapshot_hash : string; }
+
+type snapshots = {
+  ok : bool;
+  snapshots : snapshot list;
+}
+
+    (*
+    {
+         "ranking":[],
+         "publish_time":1469804400,
+         "solution_size":31,
+         "problem_id":1,
+         "owner":"1",
+         "problem_size":39,
+         "problem_spec_hash":"44f66105e0136a9ea0a4fa4b055c35318ed8840f"
+      }, *)
+
+type ranking = {
+  resemblance : float;
+  solution_size : int;
+}
+
+type problem = {
+  problem_id : int;
+  problem_spec_hash : string;
+  ranking : ranking list;
+}
+
+type leader = {
+  username : string;
+  score : float;
+}
+
+type user = {
+  username : string;
+  display_name : string;
+}
+
+type state = {
+  problems : problem list;
+  snapshot_time : int;
+  leaderboard : leader list;
+  users : user list;
+}

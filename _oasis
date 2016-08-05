@@ -6,12 +6,13 @@ Authors:     HET
 License:     PROP
 Plugins:     DevFiles (0.4)
 BuildTools:  ocamlbuild
-AlphaFeatures: ocamlbuild_more_args
-XOCamlbuildExtraArgs: "-cflags '-w +a-4-40-42-44-48'"
 OCamlVersion: >= 4.02.3
+AlphaFeatures: ocamlbuild_more_args
+XOCamlbuildExtraArgs: "-cflags '-w +a-4-40..42-44-48' -j 0"
+XOCamlbuildPluginTags: package(mybuild)
 
 Executable origami
   Path: .
   MainIs: origami.ml
   CompiledObject: best
-  BuildDepends: extlib, vg.cairo
+  BuildDepends: extlib, vg.cairo, curl, atdgen

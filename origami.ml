@@ -35,4 +35,6 @@ let () =
       | _ -> assert false
     in
     print_string @@ Solution.show solution
+  | "hello"::[] -> printfn "%s" (Api.get "hello")
+  | "get_tasks"::[] -> Api.get_all_tasks ()
   | _ -> fail "wat"

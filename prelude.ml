@@ -1,6 +1,7 @@
 open Printf
 
 let printfn fmt = Printf.ksprintf print_endline fmt
+let eprintfn fmt = Printf.ksprintf prerr_endline fmt
 
 let fail ?exn fmt =
   let fails s = match exn with None -> failwith s | Some exn -> failwith (s ^ " : " ^ Printexc.to_string exn) in

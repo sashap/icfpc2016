@@ -1,0 +1,4 @@
+
+let () =
+  Mybuild.Atdgen.setup ();
+  ()
