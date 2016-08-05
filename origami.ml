@@ -23,4 +23,7 @@ let () =
   | "hello"::[] -> printfn "%s" (Api.get "hello")
   | "get_tasks"::[] -> Api.get_all_tasks ()
   | "submit"::[] -> Api.submit_solutions ()
+  | "is_inside"::file::pt::[] ->
+    let p = Problem.input file in
+    List.map (Ops.is_inside (Pt.of_string pt)) p.shape |> List.iter (printfn "%B")
   | _ -> fail "wat"

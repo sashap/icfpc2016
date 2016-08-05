@@ -58,3 +58,21 @@ let fold_bb (lo,hi) =
     Pt.add lo {x;y} end
   in
   { src=Array.to_list vs; dst; facets; }
+
+let is_inside p v =
+  let v = Array.of_list v in
+  let n = Array.length v in
+  let r = ref 0 in
+  for i = 0 to n - 1 do
+    let vv = if i = n - 1 then v.(0) else v.(i+1) in
+    let v = v.(i) in
+    if R.le v.y p.y then
+    begin
+      if R.gt vv.y p.y && Line.which_side (v,vv) p = Left then incr r
+    end
+    else
+    begin
+      if R.le vv.y p.y && Line.which_side (v,vv) p = Right then decr r
+    end
+  done;
+  !r <> 0
