@@ -84,9 +84,12 @@ let is_inside p v =
 (* ignoring holes *)
 let is_inside_shape p = List.exists (is_inside p)
 
+let show_box (a,b) = Printf.sprintf "%s %s" (Pt.show a) (Pt.show b)
+
 let resemble a b =
   let lo,hi = bounding_box @@ List.concat [a;b] in
   let bb = Pt.sub hi lo in
+(*   eprintfn "bounded %s" (show_box (lo,hi)); *)
   let nr_inter = ref 0 in
   let nr_union = ref 0 in
   for _ = 0 to 2_000 do
@@ -106,17 +109,19 @@ let mult_box (lo,hi) f =
 let best_box shape =
   let box = bounding_box shape in
   let calc box = resemble [poly_of_box box] shape in
-  let init = try calc box with _exn -> 0. in
+  let init = calc box in
   let r = ref init in
   let best = ref box in
   for i = 99 downto 50 do
     let f = R.zmake i 100 in
     let new_box = mult_box box f in
-    try
-      let r' = calc new_box in
-      if r' > !r then (r := r'; best := new_box);
-    with
-      exn -> eprintfn "exn %d %s" i (Printexc.to_string exn)
+    let r' = calc new_box in
+    if r' > !r then
+    begin
+(*       eprintfn "advance %d %g -> %g %s" i !r r' (show_box new_box); *)
+      r := r';
+      best := new_box
+    end;
   done;
   eprintfn "best_bb: %g -> %g" init !r;
   !best
