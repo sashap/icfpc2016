@@ -168,7 +168,15 @@ let submit_problems () =
     | "" -> ()
     | prob ->
     eprintfn "sending %s ..." (out s);
-    let res = send ~prob:(int_of_string s) prob in
+    match send ~prob:(int_of_string s) prob with
+    | exception Http n ->
+      eprintfn "HTTP %d" n;
+      if n = 403 then
+      begin
+        Std.output_file ~filename:(result s) ~text:"403";
+        Std.output_file ~filename:(sent s) ~text:prob;
+      end
+    | res ->
     Std.output_file ~filename:(result s) ~text:res;
     Std.output_file ~filename:(sent s) ~text:prob;
     let res = Api_j.problem_subm_of_string res in
