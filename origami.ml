@@ -10,14 +10,17 @@ let () =
   | "render"::files ->
     let p = ref None in
     let s = ref None in
-    let output = ref "/dev/null" in
+    let output = ref None in
+    let last = ref "/dev/null" in
     files |> List.iter begin fun f ->
-      output := f ^ ".png";
+      last := f ^ ".png";
       if String.ends_with f ".out" then (assert (!s = None); s := Some (Solution.input f));
       if String.ends_with f ".in" then (assert (!p = None); p := Some (Problem.input f));
+      if String.ends_with f ".png" then (assert (!output = None); output := Some f);
     end;
-    eprintfn "output to %s" !output;
-    Render.render ?p:!p ?s:!s !output
+    let output = Option.default !last !output in
+    eprintfn "output to %s" output;
+    Render.render ?p:!p ?s:!s output
   | "draw"::n::[] ->
     let p = sprintf "data/%s.in" n in
     let p = if Sys.file_exists p then Some (Problem.input p) else None in
