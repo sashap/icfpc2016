@@ -34,6 +34,8 @@ let set_form h args =
 
 let h = lazy (Curl.init ())
 
+exception Http of int
+
 let get ?post api =
   if Unix.gettimeofday () -. !last_run < 1. then sleep 1.;
   last_run := Unix.gettimeofday ();
@@ -62,7 +64,7 @@ let get ?post api =
   set_writefunction h (fun s -> Buffer.add_string b s; String.length s);
   match do_perform h with
   | CURLE_OK when Curl.get_httpcode h = 200 -> Buffer.contents b
-  | CURLE_OK -> fail "http %d" (Curl.get_httpcode h)
+  | CURLE_OK -> raise (Http (Curl.get_httpcode h))
   | code -> fail "curl %d : %s" (Curl.errno code) (Curl.strerror code)
 
 let get_blob hash = get ("blob/" ^ hash)
@@ -129,13 +131,15 @@ let submit_solutions l =
     in
     eprintfn "sending %s ..." (out s);
     let sol = Std.input_file @@ out s in
-    let res = send ~sol:s sol in
+    match send ~sol:s sol with
+    | exception Http error -> eprintfn "HTTP %d" error
+    | res ->
     Std.output_file ~filename:(result s) ~text:res;
     Std.output_file ~filename:(sent s) ~text:sol;
     let rr = (Api_j.solution_of_string res).resemblance in
     if rr > 0.999999 then Std.output_file ~filename:(perfect s) ~text:sol;
     if rr > best_r then Std.output_file ~filename:(best s) ~text:res;
-    let msg = if best_r > 0. then (if rr > best_r then "IMPROVED " else "") else "new " in
+    let msg = if best_r > 0. then (if rr > best_r then (if rr -. best_r > 0.02 then "IMPROVED " else "improved ") else "") else "new " in
     eprintfn "%sresemblance %g -> %g (prev %g)" msg best_r rr prev_r
   end
 
