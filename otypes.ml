@@ -72,11 +72,11 @@ let sqr x = mul x x
 let eq x y = let x,y = norm x y in x.a = y.a
 let is_zero x = x.a = Z.zero
 
-let cmp a b = let (a,b) = norm (simplify a) (simplify b) in Z.sub a.a b.a
-let gt a b = Z.gt (cmp a b) Z.zero
-let lt a b = Z.lt (cmp a b) Z.zero
-let ge a b = Z.geq (cmp a b) Z.zero
-let le a b = Z.leq (cmp a b) Z.zero
+let compare a b = let (a,b) = norm (simplify a) (simplify b) in Z.sign @@ Z.sub a.a b.a
+let gt a b = compare a b > 0
+let lt a b = compare a b < 0
+let ge a b = compare a b >= 0
+let le a b = compare a b <= 0
 
 let min_ a b = if gt b a then a else b
 let max_ a b = if gt a b then a else b
