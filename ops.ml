@@ -172,7 +172,10 @@ let get_polygons start (p1,p2 as edge) overt =
   let bot = ref [p2] in
   let rec loop i overt =
     (* Printf.printf "walking: %d on %s\n top: %s\n bot: %s\n" i (Poly.show overt) (Poly.show !top) (Poly.show !bot); *)
-    let get_next started (pt::overt) =
+    let get_next started l =
+      match l with
+      | [] -> assert false
+      | (pt::overt) ->
       if started then
         if Line.which_side edge pt = Right then
           `Top (mirror edge pt),overt
@@ -191,7 +194,7 @@ let get_polygons start (p1,p2 as edge) overt =
   in loop 0 overt;
      !top, (List.rev !bot)
 
-  let do_fold outer_vertices inner_vertices (p1,_p2 as edge) = (* fold leftward *)
+  let do_fold outer_vertices _inner_vertices (p1,_p2 as edge) = (* fold leftward *)
     (*fold and rearange outer vertices*)
     Printf.printf "ready to start\n";
     let start = find_start p1 outer_vertices in

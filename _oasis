@@ -8,7 +8,7 @@ Plugins:     DevFiles (0.4)
 BuildTools:  ocamlbuild
 OCamlVersion: >= 4.02.3
 AlphaFeatures: ocamlbuild_more_args
-XOCamlbuildExtraArgs: "-cflags '-w +a-4-8-40..42-44-48' -j 0"
+XOCamlbuildExtraArgs: "-cflags '-w +a-4-40..42-44-48' -j 0"
 XOCamlbuildPluginTags: package(mybuild)
 
 Executable origami
