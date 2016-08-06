@@ -18,8 +18,8 @@ let mirror (l1,l2) pt =
 let fold_over_line ln poly =
   List.map begin fun pt ->
     match Line.which_side ln pt with
-    | Left -> mirror ln pt
-    | On | Right -> pt
+    | Right -> mirror ln pt
+    | _ -> pt
   end poly
 
 let bounding_box shape =
@@ -150,35 +150,111 @@ let solve_bb shape =
 let solve_best_bb shape =
   best_box shape |> fold_bb |> fst
 
-(* let folds = ref [] *)
-(* let rec gen_folds src edges = *)
-(*   let x0y0, x0y1, x1y1, x1y0 = (\*outer vertexes*\) *)
-(*     ({x = R.zero; y = R.zero}, *)
-(*      {x = R.zero; y = R.one}, *)
-(*      {x = R.one; y = R.one}, *)
-(*      {x = R.one; y = R.zero}) *)
-(*   in *)
-(*   let outer_vertices = [x0y0; x0y1; x1y1; x1y0] in *)
-(*   (\* let outer_edges = ref [(x0y0, x0y1);(x0y1, x1y1);(x1y1, x1y0);(x1y0, x0y0)] in (\\* initial square *\\) *\) *)
+let find_start nv1 overt =
+  let rec loop lst i =
+    match lst with
+    | [] -> failwith "not on edge!"
+    | v1::[] ->
+      let v2 = List.hd overt in
+      if Line.is_on_line (v1,v2) nv1 then
+        i
+      else
+        loop [] (i+1)
+    | v1::(v2::_ as tl) ->
+      if Line.is_on_line (v1,v2) nv1 then
+        i
+      else
+        loop tl (i+1)
+  in
+  loop overt 0
+let get_polygons start (p1,p2 as edge) overt =
+  let top = ref [p1] in
+  let bot = ref [p2] in
+  let rec loop i overt =
+    (* Printf.printf "walking: %d on %s\n top: %s\n bot: %s\n" i (Poly.show overt) (Poly.show !top) (Poly.show !bot); *)
+    let get_next started (pt::overt) =
+      if started then
+        if Line.which_side edge pt = Right then
+          `Top (mirror edge pt),overt
+        else
+          `Bot pt, overt
+      else
+        `No, overt@[pt]
+    in
+    (match get_next (i > start) overt with
+     | `Top p,[] -> top := p2::p::!top; bot:= p1::!bot;
+     | `Bot p,[] -> bot := p1::p::!bot; top:= p2::!top;
+     | _,[] -> ()
+     | `Top p, ovt -> top := p::!top; loop (i+1) ovt
+     | `Bot p, ovt -> bot := p::!bot; loop (i+1) ovt
+     | `No, ovt -> loop (i+1) ovt);
+  in loop 0 overt;
+     !top, (List.rev !bot)
 
-(*   let pick_edge_to_fold overt = *)
-(*     let v1 = Random.int (List.length oedges) in *)
-(*     let v2 = v1 + 2 in (\*do proper!*\) *)
-(*     let p1  = R.(random (make (Z.of_int 100) (Z.of_int 100))) in *)
-(*     let p2  = R.(random (make (Z.of_int 100) (Z.of_int 100))) in *)
-(*     let pt1 = *)
-(*   in *)
-(*   let do_fold src outer_vertices edgeidc = (\* fold leftward *\) *)
-(*     (\*fold and rearange outer vertices*\) *)
+  let do_fold outer_vertices inner_vertices (p1,_p2 as edge) = (* fold leftward *)
+    (*fold and rearange outer vertices*)
+    Printf.printf "ready to start\n";
+    let start = find_start p1 outer_vertices in
+    Printf.printf "ready to fold : %d (%s) \n" start (Pt.show @@ List.nth outer_vertices start);
+    let top_poly, bot_poly = get_polygons start edge outer_vertices in
+    Printf.printf "folded:\n t : %s\n b : %s\n" (Poly.show top_poly) (Poly.show bot_poly);
+    let visited = ref [p1] in
+    let nouter = ref [p1] in
+    let ninner = ref [] in
+    Printf.printf "ready to intersect\n";
+    let rec new_poly act_st stl_st act_cur stl_cur active stale = (*intersect goes here*)
+      let switch_st = function `In -> `Out | `Out -> `In in
+      let get_first_intersect s stl (_a,b as candidate) =
+        let rec loop s stl =
+          match stl with
+          | [] -> None
+          | p::tl ->
+            match Line.get_intersect (s,p) candidate with
+            | None -> loop p tl
+            | Some pt ->
+              let switched = Line.is_on_line (s,p) b in
+              if not switched then (*just put wherever? and keep looking for intersect*)
+                (* ((match state with *)
+                (*   | `Out -> nouter := b::!nouter *)
+                (*   | `In -> ninner := b::!ninner); *)
+                (*  visited := b::!visited; *)
+                (*  loop p tl) *)
+                loop p tl
+              else
+                Some pt
+        in loop s stl
+      in
+      match active,stale with
+      | [],[] -> ()
+      | [],stale -> (*no points in this poly, switch to other*)
+        new_poly stl_st act_st stl_cur act_cur stale active
+      | x::actv_tl,_ ->
+        (match get_first_intersect stl_cur stale (act_cur, x) with
+         | Some pt ->
+           if not @@ (List.exists (fun x -> Pt.eq x pt) !visited) then (*switch to other poly and mark intersect as current point in this poly*)
+             (nouter := pt::!nouter;
+              visited := pt::!visited;
+              new_poly stl_st (switch_st act_st) stl_cur pt stale active)
+           else (*just ignore intersection then*)
+             ((match act_st with
+               | `Out -> nouter := x::!nouter
+               | `In -> ninner := x::!ninner);
+               new_poly (switch_st act_st) stl_st x stl_cur actv_tl stale)
+         | None -> (*no intersects for this segment, check next*)
+           (match act_st with
+            | `Out -> nouter := x::!nouter
+            | `In -> ninner := x::!ninner);
+           new_poly stl_st act_st x stl_cur actv_tl stale);
+    in
+    new_poly `Out `In  p1 p1 top_poly bot_poly;
+    !nouter, !ninner
 
-(*     let new_poly = List.fold_left *)
-(*     (\*fold allpoints*\) *)
-(*     fold_over_line edge (Array.to_list src) *)
-(*   in *)
-(*   let fold edges = *)
-(*     match get_edge_to_fold edges with *)
-(*     | Some edge -> *)
-(*       let fsrc = do_fold src edge in *)
-
-(*     | None -> *)
-(*   in *)
+let gen_folds edge =
+  (* let x0y0, x0y1, x1y1, x1y0 = (\*outer vertexes*\) *)
+  (*   ({x = R.zero; y = R.zero}, *)
+  (*    {x = R.zero; y = R.one}, *)
+  (*    {x = R.one; y = R.one}, *)
+  (*    {x = R.one; y = R.zero}) *)
+  (* in *)
+  let outer_vertices = orig in
+  do_fold outer_vertices [] edge

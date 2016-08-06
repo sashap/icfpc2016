@@ -206,8 +206,11 @@ let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
     else
       None
 
-(* let get_on_line (a,b) r = (\*get point on line represented by %*\) *)
-(*   a.x + (b.x - a.x) * r *)
+let get_on_line (a,b) perc = (*get point on line represented by %*)
+  let open R.Infix in
+  (* let perc = R.make (Z.of_int @@ int_of_float (perc *. 1000000000.)) (Z.of_int 1000000000) in *)
+  {x = a.x + ((b.x - a.x) * perc); y = a.y + ((b.y - a.y) * perc)}
+
 end
 
 let readlni ch = input_line ch |> String.strip |> int_of_string
