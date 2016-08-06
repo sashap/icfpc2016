@@ -153,8 +153,10 @@ let submit_problems () =
   |> List.filter_map (fun s -> if String.ends_with s ".out" then Some (String.slice ~last:(-4) s) else None)
   |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
   |> List.iter begin fun s ->
+    match Std.input_file @@ out s with
+    | "" -> ()
+    | prob ->
     eprintfn "sending %s ..." (out s);
-    let prob = Std.input_file @@ out s in
     let res = send ~prob:(int_of_string s) prob in
     Std.output_file ~filename:(result s) ~text:res;
     Std.output_file ~filename:(sent s) ~text:prob;
