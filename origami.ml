@@ -50,8 +50,14 @@ let () =
     let line = Pt.of_string a, Pt.of_string b in
     let sol = Solution.input file in
     print_string @@ Solution.show {sol with dst = Array.map (Ops.mirror line) sol.dst}
-  | "gen"::[] ->
-    print_string @@ Solution.show @@ Gen.random_mirrors 3 @@ Gen.gen1 (5 + Random.int 20)
+  | "gen"::meth::[] ->
+    let meth = match meth with
+    | "rect" -> Gen.gen1
+    | "v" -> Gen.gen_v
+    | _ -> assert false
+    in
+(*     print_string @@ Solution.show @@ meth 5 *)
+    print_string @@ Solution.show @@ Gen.random_mirrors 3 @@ meth (5 + Random.int 20)
   | "hello"::[] -> printfn "%s" (Api.get "hello")
   | "get_tasks"::[] -> Api.get_all_tasks ()
   | "submit_s"::[] -> Api.submit_all_solutions ()
