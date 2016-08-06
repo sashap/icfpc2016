@@ -138,28 +138,36 @@ let best_box shape =
   eprintfn "best_bb: %g -> %g" init !r;
   !best
 
-let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
- let open R.Infix in
- let get_coefs a b =
-   let k = b.y - a.y in
-   let n = a.x - b.x in
-   let c = (k * a.x) + (n * a.y) in
-   (k,n,c)
- in
- let get_ord f s = if f > s then f,s else s,f in
- let k1,n1,c1 = get_coefs a1 b1 in
- let k2,n2,c2 = get_coefs a2 b2 in
- match (k1 * n2) - (k2 * n1) with
- | det when det = R.zero -> None
- | det ->
-   let x = ((n2*c1) - (n1*c2))/det in
-   let y = ((k1*c2) - (k2*c1))/det in
-   let x1g,x1s = get_ord a1.x b1.x in
-   let y1g,y1s = get_ord a1.y b1.y in
-   let x2g,x2s = get_ord a2.x b2.x in
-   let y2g,y2s = get_ord a2.y b2.y in
-   if (x <= x1g) && (x >= x1s) && (x <= x2g) && (x >= x2s) &&
-      (y <= y1g) && (y >= y1s) && (y <= y2g) && (y >= y2s) then
-     Some {x;y}
-   else
-     None
+
+(* let folds = ref [] *)
+(* let rec gen_folds src edges = *)
+(*   let x0y0, x0y1, x1y1, x1y0 = (\*outer vertexes*\) *)
+(*     ({x = R.zero; y = R.zero}, *)
+(*      {x = R.zero; y = R.one}, *)
+(*      {x = R.one; y = R.one}, *)
+(*      {x = R.one; y = R.zero}) *)
+(*   in *)
+(*   let outer_vertices = [x0y0; x0y1; x1y1; x1y0] in *)
+(*   (\* let outer_edges = ref [(x0y0, x0y1);(x0y1, x1y1);(x1y1, x1y0);(x1y0, x0y0)] in (\\* initial square *\\) *\) *)
+
+(*   let pick_edge_to_fold overt = *)
+(*     let v1 = Random.int (List.length oedges) in *)
+(*     let v2 = v1 + 2 in (\*do proper!*\) *)
+(*     let p1  = R.(random (make (Z.of_int 100) (Z.of_int 100))) in *)
+(*     let p2  = R.(random (make (Z.of_int 100) (Z.of_int 100))) in *)
+(*     let pt1 = *)
+(*   in *)
+(*   let do_fold src outer_vertices edgeidc = (\* fold leftward *\) *)
+(*     (\*fold and rearange outer vertices*\) *)
+
+(*     let new_poly = List.fold_left *)
+(*     (\*fold allpoints*\) *)
+(*     fold_over_line edge (Array.to_list src) *)
+(*   in *)
+(*   let fold edges = *)
+(*     match get_edge_to_fold edges with *)
+(*     | Some edge -> *)
+(*       let fsrc = do_fold src edge in *)
+
+(*     | None -> *)
+(*   in *)
