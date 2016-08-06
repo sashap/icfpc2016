@@ -23,16 +23,20 @@ let simplify ({ a; b } as r) =
   | n when n = Z.one -> r
   | n -> Z.{ a = a / n; b = b / n }
 
+let make' a b =
+  assert (b > Z.zero);
+  { a ; b }
+
 let make a b =
   assert (b > Z.zero);
   simplify { a; b }
 
 let zmake a b = make (Z.of_int a) (Z.of_int b)
 
-let int n = make n Z.one
-let zero = int Z.zero
-let one = int Z.one
-let two = int @@ Z.of_int 2
+let int n = zmake n 1
+let zero = int 0
+let one = int 1
+let two = int 2
 
 let show r =
   match simplify r with
@@ -47,6 +51,7 @@ let of_string s =
 
 let norm x y = if x.b = y.b then x,y else {a = x.a * y.b; b = x.b * y.b},{a = y.a * x.b; b = y.b * x.b} (* common denominator *)
 let mul x y = {a = x.a * y.a ; b = x.b * y.b}
+let map f x = { a = f x.a; b = f x.b; }
 let div x y = mul x {a = y.b; b = y.a}
 let add x y =
   let x,y = norm x y in
@@ -128,8 +133,12 @@ let zero = {x=R.zero;y=R.zero}
 let pi = 4.0 *. atan 1.0
 let rotate center angle pt =
   let angle = angle *. pi /. 180. in
-  let sin = R.make (Z.of_int @@ int_of_float ((sin angle) *. 1000000000.)) (Z.of_int 1000000000) in
-  let cos = R.make (Z.of_int @@ int_of_float ((cos angle) *. 1000000000.)) (Z.of_int 1000000000) in
+(*   let scale = 1_000_000_000 in *)
+  let scale = Z.of_int64 4611686018427387904L in
+  let fscale = Z.to_float scale in
+  let sin = R.make' (Z.of_float @@ ((sin angle) *. fscale)) scale in
+  let cos = R.map Z.sqrt R.Infix.(R.make scale scale - R.map (fun x -> Z.pow x 2) sin) in
+(*   let cos = R.make' (Z.of_float @@ ((cos angle) *. fscale)) (Z.of_int64 scale) in *)
   let m = R.Infix.{x = R.simplify (pt.x - center.x); y = R.simplify (pt.y - center.y)} in (*compensate center*)
   let r = R.Infix.{x = R.simplify ((m.x * cos) - (m.y * sin)); y = R.simplify ((m.x * sin) + (m.y * cos))} in (* rotate *)
   {x = R.add r.x center.x; y = R.add r.y center.y}
