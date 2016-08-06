@@ -130,7 +130,7 @@ let submit_solutions l =
       | exception _ -> 0.
       | s -> (Api_j.solution_of_string s).resemblance
     in
-    eprintfn "sending %s ..." (out s);
+    eprintf "sending %s ... %!" (out s);
     let sol = Std.input_file @@ out s in
     match send ~sol:s sol with
     | exception Http error ->
