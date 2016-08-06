@@ -3,4 +3,4 @@ set -e
 if ocamlfind query utop 2>&1 > /dev/null ; then init_file="utop.ml" ; fi
 # build everything in bytecode and also toplevel
 make BUILDFLAGS=top.top
-CAML_LD_LIBRARY_PATH=_build:$CAML_LD_LIBRARY_PATH rlwrap ./top.top -I _build -init - $init_file
+CAML_LD_LIBRARY_PATH=_build:$CAML_LD_LIBRARY_PATH rlwrap ./top.top -I _build -open Otypes -open Ops -init - $init_file

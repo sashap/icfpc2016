@@ -148,6 +148,14 @@ let make = function [] -> assert false | x -> x
 let show l = String.concat " " @@ List.map Pt.show l
 let of_string s = String.nsplit s " " |> List.map Pt.of_string
 let rotate center angle p = List.map (Pt.rotate center angle) p
+let edges p =
+  let rec loop acc = function
+  | [] -> assert false
+  | x::(x2::_ as tl) -> loop ((x,x2)::acc) tl
+  | [x] -> acc, x
+  in
+  let e,last = loop [] p in
+  List.rev ((last,List.hd p) :: e)
 end
 
 let orig = Poly.of_string "0,0 1,0 1,1 0,1"
