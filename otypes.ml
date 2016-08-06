@@ -105,8 +105,6 @@ let (-) = sub
 let (+) = add
 let ( * ) = mul
 let (/) = div
-let (>=) = ge
-let (<=) = le
 end
 
 end
