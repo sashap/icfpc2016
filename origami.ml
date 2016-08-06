@@ -34,14 +34,18 @@ let () =
     let (lo,hi) = Ops.bounding_box p.shape in
     printfn "%s %s" (Pt.show lo) (Pt.show hi)
   | "solve"::meth::file::[] ->
-    let p = Problem.input file in
+    let p,save =
+      match int_of_string file with
+      | n -> Problem.input (sprintf "data/%d.in" n), (fun x -> Std.output_file ~filename:(sprintf "data/%d.out" n) ~text:(Solution.show x))
+      | exception _ -> Problem.input file, (fun x -> print_string @@ Solution.show x)
+    in
     let solution =
       match meth with
       | "bb" -> Ops.solve_bb p.shape
       | "best_bb" -> Ops.solve_best_bb p.shape
       | _ -> assert false
     in
-    print_string @@ Solution.show solution
+    save solution
   | "rotate"::file::center::angle::[] ->
     let angle = float_of_string angle in
     let sol = Solution.input file in
