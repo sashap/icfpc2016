@@ -37,7 +37,7 @@ let h = lazy (Curl.init ())
 exception Http of int * string
 
 let get ?post api =
-  if Unix.gettimeofday () -. !last_run < 1. then sleep 1.;
+  if Unix.gettimeofday () -. !last_run < 1.1 then sleep 1.;
   last_run := Unix.gettimeofday ();
   let open Curl in
   let h = Lazy.force h in
