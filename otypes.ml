@@ -35,7 +35,7 @@ let one = int Z.one
 let two = int @@ Z.of_int 2
 
 let show r =
-  match r with
+  match simplify r with
   | {a;b} when b = Z.one -> sprintf "%s" (Z.to_string a)
   | {a;_} when a = Z.zero -> "0"
   | {a;b} -> sprintf "%s/%s" (Z.to_string a) (Z.to_string b)
