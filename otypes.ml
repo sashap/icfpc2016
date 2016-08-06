@@ -245,4 +245,7 @@ let input file =
     { src; dst; facets; }
   in
   with_open_in_txt file read
+
+let src s = List.map (List.map (fun i -> s.src.(i))) s.facets
+let dst s = List.map (List.map (fun i -> s.dst.(i))) s.facets
 end

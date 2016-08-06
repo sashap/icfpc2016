@@ -67,7 +67,7 @@ let render ?p ?s file =
   let shape, skel = match p with Some {Problem.shape; skel} -> shape, skel | None -> [], [] in
   let src, dst =
     match s with
-    | Some { facets; src; dst } -> List.map (List.map (fun i -> src.(i))) facets, List.map (List.map (fun i -> dst.(i))) facets
+    | Some s -> Solution.src s, Solution.dst s
     | None -> [], []
   in
   with_open_out_bin file (do_render ~shape ~skel ~src ~dst)
