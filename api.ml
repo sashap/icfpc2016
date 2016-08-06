@@ -98,11 +98,12 @@ let get_all_tasks () =
   end
 
 let base_ts = 1470441600
+let get_time p = base_ts + 3600 * p
 
 let send ?sol ?prob s =
   let api,task = match sol, prob with
     | Some s , None -> "solution/submit", ("problem_id", s)
-    | None, Some p -> "problem/submit", ("publish_time", sprintf "%d" (base_ts + 3600 * p))
+    | None, Some p -> "problem/submit", ("publish_time", sprintf "%d" (get_time p))
     | _ -> failwith "problem *OR* solution!"
   in
   let post = [ task; "solution_spec", s] in
@@ -166,7 +167,7 @@ let submit_problems () =
     match Std.input_file @@ out s with
     | "" -> ()
     | prob ->
-    eprintfn "sending %s ..." (out s);
+    eprintfn "sending %s at %d ..." (out s) (get_time @@ int_of_string s);
     match send ~prob:(int_of_string s) prob with
     | exception Http (code,message) ->
       eprintfn "HTTP %d %s" code message;
