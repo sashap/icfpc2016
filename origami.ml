@@ -42,6 +42,10 @@ let () =
       | _ -> assert false
     in
     print_string @@ Solution.show solution
+  | "rotate"::file::fout::angle::[] ->
+    let angle = float_of_string angle in
+    let sol = Solution.input file in
+    Std.output_file ~filename:fout ~text:(Solution.show {sol with dst = Array.map (Pt.rotate Pt.zero angle) sol.dst})
   | "hello"::[] -> printfn "%s" (Api.get "hello")
   | "get_tasks"::[] -> Api.get_all_tasks ()
   | "submit_s"::[] -> Api.submit_all_solutions ()
