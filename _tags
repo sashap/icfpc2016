@@ -1,4 +1,4 @@
 # OASIS_START
 # OASIS_STOP
-"top.top": thread,package(extlib,vg.cairo,curl,atdgen,zarith,camlgpc)
+"top.top": thread,package(extlib,vg.cairo,curl,atdgen,zarith)
 <*_t.ml> or <*_j.ml> or <*_v.ml>: warn(-27-32)

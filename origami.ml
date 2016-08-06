@@ -10,17 +10,14 @@ let () =
   | "render"::files ->
     let p = ref None in
     let s = ref None in
-    let output = ref None in
-    let last = ref "/dev/null" in
+    let output = ref "/dev/null" in
     files |> List.iter begin fun f ->
-      last := f ^ ".png";
+      output := f ^ ".png";
       if String.ends_with f ".out" then (assert (!s = None); s := Some (Solution.input f));
       if String.ends_with f ".in" then (assert (!p = None); p := Some (Problem.input f));
-      if String.ends_with f ".png" then (assert (!output = None); output := Some f);
     end;
-    let output = Option.default !last !output in
-    eprintfn "output to %s" output;
-    Render.render ?p:!p ?s:!s output
+    eprintfn "output to %s" !output;
+    Render.render ?p:!p ?s:!s !output
   | "draw"::n::[] ->
     let p = sprintf "data/%s.in" n in
     let p = if Sys.file_exists p then Some (Problem.input p) else None in
@@ -42,22 +39,10 @@ let () =
       | _ -> assert false
     in
     print_string @@ Solution.show solution
-  | "rotate"::file::center::angle::[] ->
+  | "rotate"::file::fout::angle::[] ->
     let angle = float_of_string angle in
     let sol = Solution.input file in
-    print_string @@ Solution.show {sol with dst = Array.map (Pt.rotate (Pt.of_string center) angle) sol.dst}
-  | "mirror"::file::a::b::[] ->
-    let line = Pt.of_string a, Pt.of_string b in
-    let sol = Solution.input file in
-    print_string @@ Solution.show {sol with dst = Array.map (Ops.mirror line) sol.dst}
-  | "gen"::meth::[] ->
-    let meth = match meth with
-    | "rect" -> Gen.gen1
-    | "v" -> Gen.gen_v
-    | _ -> assert false
-    in
-(*     print_string @@ Solution.show @@ meth 5 *)
-    print_string @@ Solution.show @@ Gen.random_mirrors 3 @@ meth (5 + Random.int 20)
+    Std.output_file ~filename:fout ~text:(Solution.show {sol with dst = Array.map (Pt.rotate Pt.zero angle) sol.dst})
   | "hello"::[] -> printfn "%s" (Api.get "hello")
   | "get_tasks"::[] -> Api.get_all_tasks ()
   | "submit_s"::[] -> Api.submit_all_solutions ()
