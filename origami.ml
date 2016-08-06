@@ -68,6 +68,12 @@ let () =
   | "submit_s"::[] -> Api.submit_all_solutions ()
   | "submit_s"::l -> Api.submit_solutions l
   | "submit_p"::[] -> Api.submit_problems ()
+  | "union"::a::b::out::[] ->
+    let a = Problem.input a in
+    let b = Problem.input b in
+    let e = Ops.intersect_edges (List.hd a.shape) (List.hd b.shape) in
+    List.iter (fun x -> printfn "%s" (Line.show x)) e;
+    with_open_out_bin out @@ Render.do_render ~skel:e
   | "is_inside"::file::pt::[] ->
     let p = Problem.input file in
     List.map (Ops.is_inside (Pt.of_string pt)) p.shape |> List.iter (printfn "%B")

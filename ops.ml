@@ -261,3 +261,26 @@ let gen_folds edge =
   (* in *)
   let outer_vertices = orig in
   do_fold outer_vertices [] edge
+
+let intersect_edges p1 p2 =
+  let e1 = ref [] in
+  let e2 = ref @@ Poly.edges p2 in
+  Poly.edges p1 |> List.iter begin fun e ->
+    let points = ref [] in
+    !e2 |> List.iter begin fun c ->
+      match Line.get_intersect e c with
+      | None -> ()
+      | Some p ->
+        tuck points p;
+        e2 := (fst c, p) :: (p, snd c) :: List.filter (fun c' -> c <> c') !e2
+    end;
+    match !points with
+    | [] -> tuck e1 e
+    | l ->
+      let orig = fst e in
+      let l = l |> List.map (fun x -> Line.length2 (orig,x), x) |> List.sort ~cmp:(fun a b -> R.compare (fst a) (fst b)) |> List.map snd in
+      let (edges,last) = Poly.connect (orig :: l) in
+      tuck e1 (last, snd e);
+      List.iter (tuck e1) edges
+  end;
+  !e1 @ !e2
