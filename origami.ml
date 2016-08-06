@@ -1,13 +1,31 @@
 open ExtLib
 open Prelude
 
+open Printf
 open Otypes
 
 let () =
   Random.self_init ();
   match List.tl @@ Array.to_list Sys.argv with
-  | "render"::file::[] ->
-    Render.render_problem (Problem.input file) (file ^ ".png")
+  | "render"::files ->
+    let p = ref None in
+    let s = ref None in
+    let output = ref "/dev/null" in
+    files |> List.iter begin fun f ->
+      output := f ^ ".png";
+      if String.ends_with f ".out" then (assert (!s = None); s := Some (Solution.input f));
+      if String.ends_with f ".in" then (assert (!p = None); p := Some (Problem.input f));
+    end;
+    eprintfn "output to %s" !output;
+    Render.render ?p:!p ?s:!s !output
+  | "draw"::n::[] ->
+    let p = sprintf "data/%s.in" n in
+    let p = if Sys.file_exists p then Some (Problem.input p) else None in
+    let s = sprintf "data/%s.out" n in
+    let s = if Sys.file_exists s then Some (Solution.input s) else None in
+    let out = sprintf "data/%s.png" n in
+    eprintfn "output to %s" out;
+    Render.render ?p ?s out
   | "bb"::file::[] ->
     let p = Problem.input file in
     let (lo,hi) = Ops.bounding_box p.shape in
