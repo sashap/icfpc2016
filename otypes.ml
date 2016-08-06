@@ -209,7 +209,7 @@ let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
   let k1,n1,c1 = get_coefs a1 b1 in
   let k2,n2,c2 = get_coefs a2 b2 in
   match (k1 * n2) - (k2 * n1) with
-  | det when det = R.zero -> None
+  | det when R.eq det R.zero -> None
   | det ->
     let x = simplify (((n2*c1) - (n1*c2))/det) in
     let y = simplify (((k1*c2) - (k2*c1))/det) in
