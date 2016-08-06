@@ -122,6 +122,7 @@ let submit_solutions l =
     let prev_r =
       match Std.input_file (result s) with
       | exception _ -> 0.
+      | "403" -> 0.
       | s -> (Api_j.solution_of_string s).resemblance
     in
     let best_r =
@@ -132,7 +133,13 @@ let submit_solutions l =
     eprintfn "sending %s ..." (out s);
     let sol = Std.input_file @@ out s in
     match send ~sol:s sol with
-    | exception Http error -> eprintfn "HTTP %d" error
+    | exception Http error ->
+      eprintfn "HTTP %d" error;
+      if error = 403 then
+      begin
+        Std.output_file ~filename:(sent s) ~text:sol;
+        Std.output_file ~filename:(result s) ~text:"403";
+      end
     | res ->
     Std.output_file ~filename:(result s) ~text:res;
     Std.output_file ~filename:(sent s) ~text:sol;
