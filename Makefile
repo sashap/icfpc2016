@@ -61,3 +61,7 @@ all_perfect_out=$(patsubst %.perfect_score,%.out,$(wildcard data/*.perfect_score
 .PHONY: redo
 redo:
 	$(MAKE) -B $(sort $(filter-out $(all_perfect_out),$(all_out)))
+
+.PHONY: new
+new:
+	$(MAKE) -B $(sort $(filter-out $(all_perfect_out) $(wildcard data/*.out), $(all_out)))
