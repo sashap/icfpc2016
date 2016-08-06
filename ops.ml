@@ -144,7 +144,7 @@ let best_box shape =
 
 let solve_bb shape =
  let (sol,sol_shape) = bounding_box shape |> fold_bb in
- eprintfn "resemblance %g" (resemble sol_shape shape);
+ eprintfn "bb: resemblance %g" (try resemble sol_shape shape with _ -> nan);
  sol
 
 let solve_best_bb shape =
