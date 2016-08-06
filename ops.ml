@@ -18,8 +18,8 @@ let mirror (l1,l2) pt =
 let fold_over_line ln poly =
   List.map begin fun pt ->
     match Line.which_side ln pt with
-    | Left -> mirror ln pt
-    | On | Right -> pt
+    | Right -> mirror ln pt
+    | _ -> pt
   end poly
 
 let bounding_box shape =
@@ -150,35 +150,118 @@ let solve_bb shape =
 let solve_best_bb shape =
   best_box shape |> fold_bb |> fst
 
-(* let folds = ref [] *)
-(* let rec gen_folds src edges = *)
-(*   let x0y0, x0y1, x1y1, x1y0 = (\*outer vertexes*\) *)
-(*     ({x = R.zero; y = R.zero}, *)
-(*      {x = R.zero; y = R.one}, *)
-(*      {x = R.one; y = R.one}, *)
-(*      {x = R.one; y = R.zero}) *)
-(*   in *)
-(*   let outer_vertices = [x0y0; x0y1; x1y1; x1y0] in *)
-(*   (\* let outer_edges = ref [(x0y0, x0y1);(x0y1, x1y1);(x1y1, x1y0);(x1y0, x0y0)] in (\\* initial square *\\) *\) *)
+let gen_folds () =
+  let x0y0, x0y1, x1y1, x1y0 = (*outer vertexes*)
+    ({x = R.zero; y = R.zero},
+     {x = R.zero; y = R.one},
+     {x = R.one; y = R.one},
+     {x = R.one; y = R.zero})
+  in
+  let outer_vertices = [x0y0; x1y0; x1y1; x0y1] in
+  (* let outer_edges = ref [(x0y0, x0y1);(x0y1, x1y1);(x1y1, x1y0);(x1y0, x0y0)] in (\* initial square *\) *)
 
-(*   let pick_edge_to_fold overt = *)
-(*     let v1 = Random.int (List.length oedges) in *)
-(*     let v2 = v1 + 2 in (\*do proper!*\) *)
-(*     let p1  = R.(random (make (Z.of_int 100) (Z.of_int 100))) in *)
-(*     let p2  = R.(random (make (Z.of_int 100) (Z.of_int 100))) in *)
-(*     let pt1 = *)
-(*   in *)
-(*   let do_fold src outer_vertices edgeidc = (\* fold leftward *\) *)
-(*     (\*fold and rearange outer vertices*\) *)
+  (* let pick_edge_to_fold overt = *)
+  (*   let v1 = Random.int (List.length overt - 1) in *)
+  (*   let v2 = v1 + 2 in (\*do proper!*\) *)
+  (*   let p1  = R.(random (make (Z.of_int 100) (Z.of_int 100))) in *)
+  (*   let p2  = R.(random (make (Z.of_int 100) (Z.of_int 100))) in *)
+  (*   let pt1 = Line.get_on_line !! p1 in *)
+  (*   let pt2 = Line.get_on_line !! p2 in *)
+  (*   (pt1, pt2) *)
+  (* in *)
+  (* let insert_vertices nv1 nv2 overt = *)
+  (*   let nvert = ref [] in *)
+  (*   let rec loop lst = *)
+  (*     match lst with *)
+  (*     | [] -> !nvert *)
+  (*     | v1::[] -> *)
+  (*       nvert := v1::!nvert; *)
+  (*       let v2 = List.hd overt in *)
+  (*       if Line.is_on_line (v1,v2) nv1 then *)
+  (*         nvert := nv1::!nvert *)
+  (*       else if Line.is_on_line (v1,v2) nv2 then *)
+  (*         nvert := nv2::!nvert; *)
+  (*       !nvert; *)
+  (*     | v1::(v2::_ as tl) -> *)
+  (*       nvert := v1::!nvert; *)
+  (*       if Line.is_on_line (v1,v2) nv1 then *)
+  (*         (nvert := nv1::!nvert; loop tl) *)
+  (*       else if Line.is_on_line (v1,v2) nv2 then *)
+  (*         (nvert := nv2::!nvert; loop tl) *)
+  (*       else *)
+  (*         loop tl *)
+  (*   in *)
+  (*   let _ = loop overt in *)
+  (*   let nvert = List.rev !nvert in *)
+  (*   assert ((List.length overt - List.length nvert) = 2); *)
+  (*   nvert *)
+  (* in *)
+  let find_start nv1 overt =
+    let rec loop lst i =
+      match lst with
+      | [] -> failwith "not on edge!"
+      | v1::[] ->
+        let v2 = List.hd overt in
+        if Line.is_on_line (v1,v2) nv1 then
+          i
+        else
+          loop [] (i+1)
+      | v1::(v2::_ as tl) ->
+        if Line.is_on_line (v1,v2) nv1 then
+          i
+        else
+          loop tl (i+1)
+    in
+    loop overt 0
+  in
+  let get_polygons start (p1,p2 as edge) overt =
+    let top = ref [p1] in
+    let bot = ref [p2] in
+    let rec loop i overt =
+      let get_next started (pt::overt) =
+        if started then
+          if Line.which_side edge pt = Right then
+            `Top (mirror edge pt),overt
+          else
+            `Bot pt, overt
+        else
+          `No, overt@[pt]
+      in
+      (match get_next (i > start) overt with
+       | `Top p,[] -> top := p2::p::!top
+       | `Bot p,[] -> bot := p1::p::!bot
+       | _,[] -> ()
+       | `Top p, ovt -> top := p::!top; loop (i+1) ovt
+       | `Bot p, ovt -> bot := p::!bot; loop (i+1) ovt
+       | `No, ovt -> loop (i+1) ovt);
+    in loop 0 overt;
+    (List.rev !top), !bot
+  in
+  let do_fold src outer_vertices (p1,p2 as edge) edgeidc = (* fold leftward *)
+    (*fold and rearange outer vertices*)
+    let start = find_start p1 outer_vertices in
+    let top_poly, bot_poly = get_polygons start edge outer_vertices in
+    let new_poly (p1,p2 as edge) (topf::top) (botf::bot) = (*intersect goes here*)
+      let curt = ref topf in
+      let curb = ref botf in
+      let nxtt = ref @@ List.hd top in
+      let nxtb = ref @@ List.hd bot in
+      let nouter = ref [p2] in
+      let ninner = ref [] in
+      assert (Pt.eq topf botf);
+      let get_next = function | [] -> None,[] | x::y-> Some x,y in
+      let rec loop top bot =
+        match get_next top with
+        | Some x, ntop ->
+          if is_inside x bot_poly then
+            ninner := x::!ninner;
 
-(*     let new_poly = List.fold_left *)
-(*     (\*fold allpoints*\) *)
-(*     fold_over_line edge (Array.to_list src) *)
-(*   in *)
-(*   let fold edges = *)
-(*     match get_edge_to_fold edges with *)
-(*     | Some edge -> *)
-(*       let fsrc = do_fold src edge in *)
+        | None, _ -> ()
 
-(*     | None -> *)
-(*   in *)
+      in
+      (*fold allpoints*)
+      ()
+    in
+    ()
+  in
+  ()
