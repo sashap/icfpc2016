@@ -77,13 +77,15 @@ let get_snapshot () =
   | [] -> assert false
   | { snapshot_hash = hash; _ } :: _ -> get_blob hash
 
-let get_state () =
+let _get_state () =
   let filename = "snapshot.json" in
   let s = match Sys.file_exists filename with
   | false -> let text = get_snapshot () in Std.output_file ~filename ~text; text
   | true -> Std.input_file filename
   in
   Api_j.state_of_string s
+
+let get_state () = Api_j.state_of_string @@ get_snapshot ()
 
 let get_all_tasks () =
   let open Api_j in
