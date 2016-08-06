@@ -71,9 +71,14 @@ let () =
   | "union"::a::b::out::[] ->
     let a = Problem.input a in
     let b = Problem.input b in
-    let e = Ops.intersect_edges (List.hd a.shape) (List.hd b.shape) in
-    List.iter (fun x -> printfn "%s" (Line.show x)) e;
-    with_open_out_bin out @@ Render.do_render ~skel:e
+    begin match Ops.intersect_edges (List.hd a.shape) (List.hd b.shape) with
+    | `Edges e ->
+      List.iter (fun x -> printfn "%s" (Line.show x)) e;
+      with_open_out_bin out @@ Render.do_render ~skel:e
+    | `Outer p ->
+      printfn "contains";
+      with_open_out_bin out @@ Render.do_render ~shape:[p]
+    end
   | "is_inside"::file::pt::[] ->
     let p = Problem.input file in
     List.map (Ops.is_inside (Pt.of_string pt)) p.shape |> List.iter (printfn "%B")

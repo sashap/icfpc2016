@@ -265,12 +265,14 @@ let gen_folds edge =
 let intersect_edges p1 p2 =
   let e1 = ref [] in
   let e2 = ref @@ Poly.edges p2 in
+  let ok = ref false in
   Poly.edges p1 |> List.iter begin fun e ->
     let points = ref [] in
     !e2 |> List.iter begin fun c ->
       match Line.get_intersect e c with
       | None -> ()
       | Some p ->
+        ok := true;
         tuck points p;
         e2 := (fst c, p) :: (p, snd c) :: List.filter (fun c' -> c <> c') !e2
     end;
@@ -283,4 +285,15 @@ let intersect_edges p1 p2 =
       tuck e1 (last, snd e);
       List.iter (tuck e1) edges
   end;
-  !e1 @ !e2
+  match !ok with
+  | true -> `Edges (!e1 @ !e2)
+  | false ->
+  let check l = assert (List.fold_left (fun acc x -> acc = x) (List.hd l) l); List.hd l in
+  let p2_in_p1 = check @@ List.map (fun p -> is_inside p p1) p2 in
+  let p1_in_p2 = check @@ List.map (fun p -> is_inside p p2) p1 in
+  match p1_in_p2, p2_in_p1 with
+  | true, false -> `Outer p2
+  | false, true -> `Outer p1
+  | false, false -> assert false (* disjoint *)
+  | true, true -> assert false (* impossible *)
+
