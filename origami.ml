@@ -14,9 +14,10 @@ let () =
     let last = ref "/dev/null" in
     files |> List.iter begin fun f ->
       last := f ^ ".png";
-      if String.ends_with f ".out" then (assert (!s = None); s := Some (Solution.input f));
-      if String.ends_with f ".in" then (assert (!p = None); p := Some (Problem.input f));
-      if String.ends_with f ".png" then (assert (!output = None); output := Some f);
+      if String.ends_with f ".out" then (assert (!s = None); s := Some (Solution.input f)) else
+      if String.ends_with f ".in" then (assert (!p = None); p := Some (Problem.input f)) else
+      if String.ends_with f ".png" then (assert (!output = None); output := Some f) else
+      fail "don't know what to do with %S" f
     end;
     let output = Option.default !last !output in
     eprintfn "output to %s" output;

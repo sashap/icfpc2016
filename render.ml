@@ -38,7 +38,7 @@ let do_render ?(shape=[]) ?(skel=[]) ?(src=[]) ?(dst=[]) ch =
   let shift_x = R.Infix.(view_size /. 2. -. (r lo.x +. r (bb.x / R.two))) in
   let shift_y = R.Infix.(view_size /. 2. -. (r lo.y +. r (bb.y / R.two))) in
 *)
-  let (lo,hi) = Ops.bounding_box ([[{x=R.zero;y=R.zero}; {x=R.one;y=R.one}]] @ src @ dst @ shape) in
+  let (lo,hi) = Ops.bounding_box ([[{x=R.zero;y=R.zero}; {x=R.one;y=R.one}]] @ src @ dst @ (List.map (fun (x,y) -> [x;y]) skel) @ shape) in
   let view_size = 1.25 *. 2. *. List.fold_left max 0. (List.map (fun p -> abs_float @@ 0.5 -. r p) [lo.x; lo.y; hi.x; hi.y]) in
   let shift_x = view_size /. 2. -. 0.5 in
   let shift_y = view_size /. 2. -. 0.5 in
