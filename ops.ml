@@ -2,6 +2,10 @@ open ExtLib
 open Otypes
 open Prelude
 
+let monte_carlo_limit = 2_000
+let shuffle_a = 70
+let shuffle_limit = 100
+
 let mirror (l1,l2) pt =
   let open R.Infix in
   let dx = l2.x - l1.x in
@@ -92,7 +96,7 @@ let resemble a b =
 (*   eprintfn "bounded %s" (show_box (lo,hi)); *)
   let nr_inter = ref 0 in
   let nr_union = ref 0 in
-  for _ = 0 to 2_000 do
+  for _ = 0 to monte_carlo_limit do
     let pt = { x = R.add lo.x (R.random bb.x); y = R.add lo.y (R.random bb.y) } in
     let a = is_inside_shape pt a in
     let b = is_inside_shape pt b in
@@ -119,23 +123,24 @@ let mult_box (lo,hi) var f =
 let best_box shape =
   let box = bounding_box shape in
   let calc box = resemble [poly_of_box box] shape in
-  let init = calc box in
-  let r = ref init in
+  let r = ref @@ calc box in
+  let pos = ref (0,0) in
   let best = ref box in
-  for i = 99 downto 50 do
-    let f = R.zmake i 100 in
+  for i = shuffle_limit downto shuffle_a do
+    let f = R.zmake i shuffle_limit in
     for j = 0 to 4 do
-    let new_box = mult_box box j f in
-    let r' = calc new_box in
-    if r' > !r then
-    begin
-(*       eprintfn "advance %d %g -> %g %s" i !r r' (show_box new_box); *)
-      r := r';
-      best := new_box
-    end;
+      let new_box = mult_box box j f in
+      let r' = calc new_box in
+      if r' > !r then
+      begin
+  (*       eprintfn "advance %d %g -> %g %s" i !r r' (show_box new_box); *)
+        r := r';
+        best := new_box;
+        pos := (i,j)
+      end;
     done;
   done;
-  eprintfn "best_bb: %g -> %g" init !r;
+  eprintfn "best_bb: %g i=%d j=%d" !r (fst !pos) (snd !pos);
   !best
 
 
