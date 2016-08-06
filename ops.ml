@@ -55,17 +55,16 @@ let fold_bb (lo,hi) =
         _ -> None
     end
   in
-  let src = Array.to_list vs in
   let wrap p len =
     let n,m = R.divide p len in
     if R.is_zero m then snd @@ R.divide p (R.mul len R.two) else if (Z.(mod) n (Z.of_int 2)) = Z.zero then m else R.sub len m
   in
-  let dst = src |> List.map begin fun p ->
+  let dst = vs |> Array.map begin fun p ->
     let x = wrap p.x bb.x in
     let y = wrap p.y bb.y in
     Pt.add lo {x;y} end
   in
-  { src=Array.to_list vs; dst; facets; shape = [poly_of_box (lo,hi)]; }
+  { src=vs; dst; facets; }, [poly_of_box (lo,hi)]
 
 let is_inside p v =
   let v = Array.of_list v in
@@ -143,6 +142,13 @@ let best_box shape =
   eprintfn "best_bb: %g i=%d j=%d" !r (fst !pos) (snd !pos);
   !best
 
+let solve_bb shape =
+ let (sol,sol_shape) = bounding_box shape |> fold_bb in
+ eprintfn "resemblance %g" (resemble sol_shape shape);
+ sol
+
+let solve_best_bb shape =
+  best_box shape |> fold_bb |> fst
 
 (* let folds = ref [] *)
 (* let rec gen_folds src edges = *)

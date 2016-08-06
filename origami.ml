@@ -16,11 +16,10 @@ let () =
     let p = Problem.input file in
     let solution =
       match meth with
-      | "bb" -> Ops.bounding_box p.shape |> Ops.fold_bb
-      | "best_bb" -> Ops.best_box p.shape |> Ops.fold_bb
+      | "bb" -> Ops.solve_bb p.shape
+      | "best_bb" -> Ops.solve_best_bb p.shape
       | _ -> assert false
     in
-    if meth <> "best_bb" then eprintfn "resemblance %g" (Ops.resemble solution.shape p.shape);
     print_string @@ Solution.show solution
   | "hello"::[] -> printfn "%s" (Api.get "hello")
   | "get_tasks"::[] -> Api.get_all_tasks ()

@@ -6,7 +6,7 @@ let atoi s = try int_of_string @@ String.strip s with _ -> fail "atoi %S" s
 
 type ratio = { a : Z.t; b : Z.t }
 type point = { x : ratio; y : ratio }
-type solution = { src : point list; dst : point list; facets : int list list; shape : point list list; }
+type solution = { src : point array; dst : point array; facets : int list list; }
 
 let rec gcd a b : Z.t =
   if b = Z.zero then a else gcd b (Z.(mod) a b)
@@ -202,20 +202,17 @@ let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
 (*   a.x + (b.x - a.x) * r *)
 end
 
+let readlni ch = input_line ch |> String.strip |> int_of_string
+let readln_pt ch = Pt.of_string @@ input_line ch
+let readln_poly ch = List.init (readlni ch) (fun _ -> readln_pt ch)
+
 module Problem = struct
 type t = { shape : Poly.t list; skel : Line.t list; }
 
 let input file =
-  let readlni ch = input_line ch |> String.strip |> int_of_string in
   let read ch =
-    let shape =
-      List.init (readlni ch) begin fun _ ->
-        List.init (readlni ch) (fun _ -> Pt.of_string @@ input_line ch)
-      end
-    in
-    let skel =
-      List.init (readlni ch) (fun _ -> Line.of_string @@ input_line ch)
-    in
+    let shape = List.init (readlni ch) begin fun _ -> readln_poly ch end in
+    let skel = List.init (readlni ch) (fun _ -> Line.of_string @@ input_line ch) in
     { shape; skel }
   in
   with_open_in_txt file read
@@ -224,12 +221,27 @@ end
 
 module Solution = struct
 type t = solution
-let show { src; dst; facets; shape=_ } =
+let show { src; dst; facets; } =
   let io = IO.output_string () in
-  IO.printf io "%d\n" (List.length src);
-  List.iter (fun p -> IO.printf io "%s\n" (Pt.show p)) src;
+  IO.printf io "%d\n" (Array.length src);
+  Array.iter (fun p -> IO.printf io "%s\n" (Pt.show p)) src;
   IO.printf io "%d\n" (List.length facets);
   List.iter (fun l -> IO.printf io "%d %s\n" (List.length l) (String.concat " " @@ List.map string_of_int l)) facets;
-  List.iter (fun p -> IO.printf io "%s\n" (Pt.show p)) dst;
+  Array.iter (fun p -> IO.printf io "%s\n" (Pt.show p)) dst;
   IO.close_out io
+
+let input file =
+  let read ch =
+    let src = Array.init (readlni ch) begin fun _ -> readln_pt ch end in
+    let facets = List.init (readlni ch) begin fun _ ->
+      match String.nsplit (input_line ch) " " with
+      | [] -> assert false
+      | n::xs ->
+        assert (List.length xs = int_of_string n);
+        List.map int_of_string xs
+    end in
+    let dst = src |> Array.map (fun _ -> readln_pt ch) in
+    { src; dst; facets; }
+  in
+  with_open_in_txt file read
 end
