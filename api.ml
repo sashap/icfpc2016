@@ -34,7 +34,7 @@ let set_form h args =
 
 let h = lazy (Curl.init ())
 
-exception Http of int
+exception Http of int * string
 
 let get ?post api =
   if Unix.gettimeofday () -. !last_run < 1. then sleep 1.;
@@ -64,7 +64,7 @@ let get ?post api =
   set_writefunction h (fun s -> Buffer.add_string b s; String.length s);
   match do_perform h with
   | CURLE_OK when Curl.get_httpcode h = 200 -> Buffer.contents b
-  | CURLE_OK -> raise (Http (Curl.get_httpcode h))
+  | CURLE_OK -> raise (Http (Curl.get_httpcode h, Buffer.contents b))
   | code -> fail "curl %d : %s" (Curl.errno code) (Curl.strerror code)
 
 let get_blob hash = get ("blob/" ^ hash)
@@ -120,10 +120,9 @@ let submit_solutions l =
   |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
   |> List.iter begin fun s ->
     let prev_r =
-      match Std.input_file (result s) with
+      match Api_j.solution_of_string @@ Std.input_file (result s) with
       | exception _ -> 0.
-      | "403" -> 0.
-      | s -> (Api_j.solution_of_string s).resemblance
+      | a -> a.resemblance
     in
     let best_r =
       match Std.input_file (best s) with
@@ -133,12 +132,12 @@ let submit_solutions l =
     eprintf "sending %s ... %!" (out s);
     let sol = Std.input_file @@ out s in
     match send ~sol:s sol with
-    | exception Http error ->
-      eprintfn "HTTP %d" error;
+    | exception Http (error,message) ->
+      eprintfn "HTTP %d %s" error message;
       if error = 403 then
       begin
+        Std.output_file ~filename:(result s) ~text:message;
         Std.output_file ~filename:(sent s) ~text:sol;
-        Std.output_file ~filename:(result s) ~text:"403";
       end
     | res ->
     Std.output_file ~filename:(result s) ~text:res;
@@ -169,11 +168,11 @@ let submit_problems () =
     | prob ->
     eprintfn "sending %s ..." (out s);
     match send ~prob:(int_of_string s) prob with
-    | exception Http n ->
-      eprintfn "HTTP %d" n;
-      if n = 403 then
+    | exception Http (code,message) ->
+      eprintfn "HTTP %d %s" code message;
+      if code = 403 then
       begin
-        Std.output_file ~filename:(result s) ~text:"403";
+        Std.output_file ~filename:(result s) ~text:message;
         Std.output_file ~filename:(sent s) ~text:prob;
       end
     | res ->
