@@ -35,7 +35,7 @@ let one = int Z.one
 let two = int @@ Z.of_int 2
 
 let show r =
-  match simplify r with
+  match r with
   | {a;b} when b = Z.one -> sprintf "%s" (Z.to_string a)
   | {a;_} when a = Z.zero -> "0"
   | {a;b} -> sprintf "%s/%s" (Z.to_string a) (Z.to_string b)
@@ -67,11 +67,11 @@ let sqr x = mul x x
 let eq x y = let x,y = norm x y in x.a = y.a
 let is_zero x = x.a = Z.zero
 
-let cmp a b = let (a,b) = norm a b in a.a - b.a
-let gt a b = cmp a b > Z.zero
-let lt a b = cmp a b < Z.zero
-let ge a b = cmp a b >= Z.zero
-let le a b = cmp a b <= Z.zero
+let cmp a b = let (a,b) = norm (simplify a) (simplify b) in Z.sub a.a b.a
+let gt a b = Z.gt (cmp a b) Z.zero
+let lt a b = Z.lt (cmp a b) Z.zero
+let ge a b = Z.geq (cmp a b) Z.zero
+let le a b = Z.leq (cmp a b) Z.zero
 
 let min_ a b = if gt b a then a else b
 let max_ a b = if gt a b then a else b
@@ -100,6 +100,8 @@ let (-) = sub
 let (+) = add
 let ( * ) = mul
 let (/) = div
+let (>=) = ge
+let (<=) = le
 end
 
 end
@@ -123,6 +125,14 @@ let div a k = R.Infix.{ x = a.x / k; y = a.y / k }
 let eq a b = R.eq a.x b.x && R.eq a.y b.y
 let one = {x=R.one;y=R.one}
 let zero = {x=R.zero;y=R.zero}
+let pi = 4.0 *. atan 1.0
+let rotate center angle pt =
+  let angle = angle *. pi /. 180. in
+  let sin = R.make (Z.of_int @@ int_of_float ((sin angle) *. 1000000000.)) (Z.of_int 1000000000) in
+  let cos = R.make (Z.of_int @@ int_of_float ((cos angle) *. 1000000000.)) (Z.of_int 1000000000) in
+  let m = R.Infix.{x = R.simplify (pt.x - center.x); y = R.simplify (pt.y - center.y)} in (*compensate center*)
+  let r = R.Infix.{x = R.simplify ((m.x * cos) - (m.y * sin)); y = R.simplify ((m.x * sin) + (m.y * cos))} in (* rotate *)
+  {x = R.add r.x center.x; y = R.add r.y center.y}
 end
 
 module Poly = struct
@@ -160,6 +170,36 @@ let which_side (a,b) pt =
 
 let is_on_line (a,b) pt =
   which_side (a,b) pt = On
+
+let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
+  let open R in
+  let open R.Infix in
+  let get_coefs (a : point) b =
+    let k = b.y - a.y in
+    let n = a.x - b.x in
+    let c = (mul k a.x) + (mul n a.y) in
+    (k,n,c)
+  in
+  let get_ord f s = if R.gt f s then f,s else s,f in
+  let k1,n1,c1 = get_coefs a1 b1 in
+  let k2,n2,c2 = get_coefs a2 b2 in
+  match (k1 * n2) - (k2 * n1) with
+  | det when det = R.zero -> None
+  | det ->
+    let x = simplify (((n2*c1) - (n1*c2))/det) in
+    let y = simplify (((k1*c2) - (k2*c1))/det) in
+    let x1g,x1s = get_ord a1.x b1.x in
+    let y1g,y1s = get_ord a1.y b1.y in
+    let x2g,x2s = get_ord a2.x b2.x in
+    let y2g,y2s = get_ord a2.y b2.y in
+    if (le x x1g) && (ge x x1s) && (le x x2g) && (ge x x2s) &&
+       (le y y1g) && (ge y y1s) && (le y y2g) && (ge y y2s) then
+      Some {x;y}
+    else
+      None
+
+(* let get_on_line (a,b) r = (\*get point on line represented by %*\) *)
+(*   a.x + (b.x - a.x) * r *)
 end
 
 module Problem = struct
