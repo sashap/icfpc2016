@@ -88,12 +88,14 @@ let get_state () =
 let get_all_tasks () =
   let open Api_j in
   let st = get_state () in
-  st.problems |> List.iter begin fun (p:problem) ->
+  let to_get = st.problems |> List.filter begin fun (p:problem) ->
     let filename = sprintf "data/%d.in" p.problem_id in
-    match Sys.file_exists filename with
-    | true -> ()
-    | false ->
-      eprintfn "getting %s" filename;
+    not @@ Sys.file_exists filename
+  end
+  in
+  to_get |> List.iteri begin fun i (p:problem) ->
+      let filename = sprintf "data/%d.in" p.problem_id in
+      eprintfn "getting %d of %d : %s" i (List.length to_get) filename;
       Std.output_file ~filename ~text:(get_blob p.problem_spec_hash)
   end
 
