@@ -125,6 +125,8 @@ let sub a b = R.Infix.{ x = a.x - b.x; y = a.y - b.y }
 let add a b = R.Infix.{ x = a.x + b.x; y = a.y + b.y }
 let mul a k = R.Infix.{ x = a.x * k; y = a.y * k }
 let div a k = R.Infix.{ x = a.x / k; y = a.y / k }
+let dot a b = R.Infix.(a.x * b.x + a.y * b.y)
+let cross a b = R.Infix.(a.x * b.y - a.y * b.x)
 let eq a b = R.eq a.x b.x && R.eq a.y b.y
 let one = {x=R.one;y=R.one}
 let zero = {x=R.zero;y=R.zero}
@@ -148,13 +150,15 @@ let make = function [] -> assert false | x -> x
 let show l = String.concat " " @@ List.map Pt.show l
 let of_string s = String.nsplit s " " |> List.map Pt.of_string
 let rotate center angle p = List.map (Pt.rotate center angle) p
-let edges p =
+let connect p =
   let rec loop acc = function
   | [] -> assert false
   | x::(x2::_ as tl) -> loop ((x,x2)::acc) tl
   | [x] -> acc, x
   in
-  let e,last = loop [] p in
+  loop [] p
+let edges p =
+  let e,last = connect p in
   List.rev ((last,List.hd p) :: e)
 end
 
@@ -172,8 +176,13 @@ let of_string s =
   with
     exn -> fail ~exn "Line.of_string %S" s
 
+let vector (a,b) = Pt.sub b a
+let eq (a,b) (c,d) = (Pt.eq a c && Pt.eq b d) || (Pt.eq b c && Pt.eq a d)
+
 let length2 ((a,b) : t) = (* (x - x)^2 + (y - y)^2 no sqrt *)
   R.Infix.(R.sqr (a.x - b.x) + R.sqr (a.y - b.y))
+
+let show (a,b) = Pt.show a ^ " " ^ Pt.show b
 
 let which_side (a,b) pt =
   let r = R.Infix.(((b.x - a.x) * (pt.y - a.y)) - ((pt.x - a.x) * (b.y - a.y))).a in
