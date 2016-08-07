@@ -17,7 +17,7 @@ let gen_folds () =
     printf "continue? [1/0] : ";
     flag := (read_int ()) = 1
   done;
-  print_string @@ Ops.form_solution ()
+  print_string @@ (Solution.show @@ Ops.build_solution ())
 
 let () =
   Random.self_init ();

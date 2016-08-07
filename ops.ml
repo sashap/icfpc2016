@@ -391,25 +391,19 @@ let update_edges edge =
   in
   polygons := new_polygons
 
-
-let form_solution () =
-  let open Printf in
-  let vert_orig =
-    Hashtbl.fold (fun i p a -> (i,Pt.show p)::a) idx_pt []
+let build_solution () =
+  let src =
+    Hashtbl.fold (fun i p a -> (i,p)::a) idx_pt []
     |> List.sort ~cmp:(fun (i1,_) (i2,_) -> compare i1 i2)
-    |> List.map snd in
-  let src = sprintf "%d\n%s\n" (List.length vert_orig) (String.join "\n" vert_orig) in
-
-  let polygons = List.map (fun p -> sprintf "%d %s" (List.length p) (String.join " " (List.map (fun (i,_) -> string_of_int i) p))) !polygons in
-  let facets = sprintf "%d\n%s\n" (List.length polygons) (String.join "\n" polygons) in
-
-  let vert_fin =
-    Hashtbl.fold (fun i p a -> (i,Pt.show p)::a) idx_pt_last []
+    |> List.map snd
+    |> Array.of_list in
+  let dst =
+    Hashtbl.fold (fun i p a -> (i,p)::a) idx_pt_last []
     |> List.sort ~cmp:(fun (i1,_) (i2,_) -> compare i1 i2)
-    |> List.map snd in
-  let dest = sprintf "%s\n" (String.join "\n" vert_fin) in
-
-  sprintf "%s%s%s" src facets dest
+    |> List.map snd
+    |> Array.of_list in
+  let facets = List.map (fun p -> (List.map fst p)) !polygons in
+  {src; dst; facets}
 
 (* indexed polygons end -----------------------------------------------*)
 
