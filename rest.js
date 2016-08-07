@@ -16,6 +16,7 @@ var request = require('request-promise').defaults({
   baseUrl: 'http://2016sv.icfpcontest.org/api/'
 });
 
+var teamId = "103";
 
 var args = {
   headers: headers 
@@ -25,9 +26,11 @@ var options = {
   url: 'snapshot/list',
 };
 
-var minDelay = 1000;
+var minDelay = 1500;
 
-var maxProblemsToGet = 50;
+var maxNewProblemsToGet = 50;
+
+
 var problemsDir = "data";
 var problemsExt = ".in";
 
@@ -38,46 +41,70 @@ if (!fs.existsSync(problemsDir)){
 
 var lastTimepoint = Date.now();
 
-request(options)
-.then(function(data){
 
-  // console.log("Snapshot List: ", data);
-  var latestSnapshot = data.snapshots.sort(function(a,b){
-    // Needs to be negative if a < b, needs to be positive if a > b, 0 otherwise
-    return b.snapshot_time - a.snapshot_time;
-  })[0];
-  console.log("Got latest snapshot with time :", latestSnapshot.snapshot_time, new Date(latestSnapshot.snapshot_time));
-  return latestSnapshot;
+// Get list of team problems
+var getTeamProblems = function(problems){
+  return problems.filter(function(problem){
+    problem.owner === teamId;
+  });
+};
 
-})
-.delay(minDelay)
-.then(function(latestSnapshot){
+// Perform analysis on problem effectiveness
+var analyzeProblemStrength = function(problems){
 
-  // Call blob snapshot 
-  options.url = 'blob/' + latestSnapshot.snapshot_hash;
-  return request(options);
+  console.log("Following are very strong: ", problems);
 
-})
-.then(function(data){
+};
 
-  var problems = data.problems
+// Get all latest problems available
+var getAllProblems = function(){
+
+  return request(options)
+  .then(function(data){
+
+    // console.log("Snapshot List: ", data);
+    var latestSnapshot = data.snapshots.sort(function(a,b){
+      // Needs to be negative if a < b, needs to be positive if a > b, 0 otherwise
+      return b.snapshot_time - a.snapshot_time;
+    })[0];
+    console.log("Got latest snapshot",latestSnapshot.snapshot_hash, "with time :", latestSnapshot.snapshot_time, new Date(latestSnapshot.snapshot_time));
+    return latestSnapshot;
+
+  })
+  .delay(minDelay)
+  .then(function(latestSnapshot){
+
+    // Call blob snapshot 
+    options.url = 'blob/' + latestSnapshot.snapshot_hash;
+    return request(options);
+
+  })
+  .then(function(data){
+    return data.problems;
+  });
+
+};
+
+
+var downloadNewProblems = function(allProblems, maxNewProblemsToGet){
+
+  var problems = allProblems
     // Get all problems which do not exist yet
     .filter(function(problem){
       return !fs.existsSync(problemsDir + "/" + problem.problem_id + problemsExt);
     })
     // Set max problems to get
-    .slice(0,maxProblemsToGet);
+    .slice(0, maxNewProblemsToGet || allProblems.length);
 
 
-
-  console.log("Found", problems.length, "new problems and", data.problems.length - problems.length, " existing problems.");
+  console.log("Found", problems.length, "new problems and", allProblems.length - problems.length, " existing problems.");
 
   return Promise.map(
     problems, 
     function(problem){
 
       var targetFile = problemsDir + "/" + problem.problem_id + problemsExt;
-      var myDelay = minDelay - (Date.now() - lastTimepoint);
+      var myDelay = 0;
       lastTimepoint = Date.now();
       return request({ url: 'blob/' + problem.problem_spec_hash })
         .then(function(data){
@@ -87,8 +114,9 @@ request(options)
           console.log(data);
           console.log("-------------------------------------------");
           fs.writeFile(targetFile, data);
+          myDelay = minDelay - (Date.now() - lastTimepoint);
+          lastTimepoint = Date.now();
           console.log("Waiting for API to cool down:", myDelay);
-
         })
         .delay(myDelay);
     }, 
@@ -96,13 +124,16 @@ request(options)
     {concurrency: 1}
   );
 
-})
-// Must be last thing in the chain - we want all subsequent call to fail if any of them fail
-.catch(function(error){
-  console.log("I caught a Pokemon.  No.  Error:", error.message);
-})
-.then(function(){
-  console.log("We're finished!");
-});
+};
 
+
+
+// var teamProblems = getTeamProblems(data.problems);
+// analyzeProblemStrength(teamProblems);
+
+
+getAllProblems()
+.then(function(problems){
+  downloadNewProblems(problems);
+})
 
