@@ -240,6 +240,7 @@ var analyzeProblemStrength = function(problems, orderKey, orderDesc, fullStats){
       id: problem.problem_id,
       class: problemToClassMap[problem.problem_id],
       teamScore: teamScore.toFixed(argv.rounded),
+      solutionSize: s,
       perfectSolutions: perfectSolutions,
       partialSolutions: partialSolutions,
     };
