@@ -6,22 +6,6 @@ let monte_carlo_limit = 2_000
 let shuffle_a = 70
 let shuffle_limit = 100
 
-let mirror (l1,l2) pt =
-  let open R.Infix in
-  let dx = l2.x - l1.x in
-  let dy = l2.y - l1.y in
-  let a = (R.sqr dx - R.sqr dy) / (R.sqr dx + R.sqr dy) in
-  let b = (R.two * (dx * dy)) / (R.sqr dx + R.sqr dy) in
-  { x = l1.x + ((a * (pt.x - l1.x)) + (b * (pt.y - l1.y)));
-    y = l1.y + ((b * (pt.x - l1.x)) - (a * (pt.y - l1.y)))}
-
-let fold_over_line ln poly =
-  List.map begin fun pt ->
-    match Line.which_side ln pt with
-    | Right -> mirror ln pt
-    | _ -> pt
-  end poly
-
 let bounding_box shape =
   match shape |> List.concat with
   | [] -> assert false
@@ -249,6 +233,50 @@ let union p1 p2 =
     in
     loop (Pt.sub lo Pt.one) start
 
+let mirror (l1,l2) pt =
+  let open R.Infix in
+  let dx = l2.x - l1.x in
+  let dy = l2.y - l1.y in
+  let a = (R.sqr dx - R.sqr dy) / (R.sqr dx + R.sqr dy) in
+  let b = (R.two * (dx * dy)) / (R.sqr dx + R.sqr dy) in
+  { x = l1.x + ((a * (pt.x - l1.x)) + (b * (pt.y - l1.y)));
+    y = l1.y + ((b * (pt.x - l1.x)) - (a * (pt.y - l1.y)))}
+
+let fold_over_line ln poly =
+  List.map begin fun pt ->
+    match Line.which_side ln pt with
+    | Right -> mirror ln pt
+    | _ -> pt
+  end poly
+
+let get_polygons start (p1,p2 as edge) overt =
+  let top = ref [p1] in
+  let bot = ref [p2] in
+  let rec loop i overt =
+    (* Printf.printf "walking: %d on %s\n top: %s\n bot: %s\n" i (Poly.show overt) (Poly.show !top) (Poly.show !bot); *)
+    let get_next started l =
+      match l with
+      | [] -> assert false
+      | (pt::overt) ->
+      if started then
+        if Line.which_side edge pt = Right then
+          let npt = mirror edge pt in
+          `Top npt,overt
+        else
+          `Bot pt, overt
+      else
+        `No, overt@[pt]
+    in
+    (match get_next (i > start) overt with
+     | `Top p,[] -> top := p2::p::!top; bot:= p1::!bot;
+     | `Bot p,[] -> bot := p1::p::!bot; top:= p2::!top;
+     | _,[] -> ()
+     | `Top p, ovt -> top := p::!top; loop (i+1) ovt
+     | `Bot p, ovt -> bot := p::!bot; loop (i+1) ovt
+     | `No, ovt -> loop (i+1) ovt);
+  in loop 0 overt;
+     !top, (List.rev !bot)
+
 let find_start nv1 overt =
   let rec loop lst i =
     match lst with
@@ -267,7 +295,22 @@ let find_start nv1 overt =
   in
   loop overt 0
 
-let get_polygons start (p1,p2 as edge) overt =
+(* indexed polygons here -----------------------------------------------*)
+
+let idx_pt = Hashtbl.create 10
+let v_idx = ref 0
+let store_vertex p  =
+  let cidx = !v_idx in
+  Hashtbl.add idx_pt cidx p;
+  incr v_idx;
+  (cidx,p)
+
+(* let pt_idx = Hashtbl.create 10 *)
+let polygons = ref [(List.map store_vertex orig)]
+
+let get_polygons_indexed start (p1,p2 as edge) overt =
+  let p1 = store_vertex p1 in
+  let p2 = store_vertex p2 in
   let top = ref [p1] in
   let bot = ref [p2] in
   let rec loop i overt =
@@ -275,10 +318,11 @@ let get_polygons start (p1,p2 as edge) overt =
     let get_next started l =
       match l with
       | [] -> assert false
-      | (pt::overt) ->
+      | ((pid,ptc as pt)::overt) ->
       if started then
-        if Line.which_side edge pt = Right then
-          `Top (mirror edge pt),overt
+        if Line.which_side edge ptc = Right then
+          let npt = mirror edge ptc in
+          `Top (pid,npt),overt
         else
           `Bot pt, overt
       else
@@ -294,25 +338,68 @@ let get_polygons start (p1,p2 as edge) overt =
   in loop 0 overt;
      !top, (List.rev !bot)
 
-  let do_fold outer_vertices _inner_vertices (p1,_p2 as edge) = (* fold leftward *)
-    let start = find_start p1 outer_vertices in
-    let top_poly, bot_poly = get_polygons start edge outer_vertices in
-    union top_poly bot_poly
+let find_start_indexed nv1 overt =
+  let rec loop lst i =
+    match lst with
+    | [] -> failwith "not on edge!"
+    | (_,v1)::[] ->
+      let (_,v2) = List.hd overt in
+      if Line.is_on_line (v1,v2) nv1 then
+        i
+      else
+        loop [] (i+1)
+    | (_,v1)::((_,v2)::_ as tl) ->
+      if Line.is_on_line (v1,v2) nv1 then
+        i
+      else
+        loop tl (i+1)
+  in
+  loop overt 0
 
-(* let gen_folds () = *)
-  (* let open Printf in *)
-  (* (\* let x0y0, x0y1, x1y1, x1y0 = (\\*outer vertexes*\\) *\) *)
-  (* (\*   ({x = R.zero; y = R.zero}, *\) *)
-  (* (\*    {x = R.zero; y = R.one}, *\) *)
-  (* (\*    {x = R.one; y = R.one}, *\) *)
-  (* (\*    {x = R.one; y = R.zero}) *\) *)
-  (* (\* in *\) *)
-  (* (\* let rec loop i v = *\) *)
-  (* let cpt_idx = Hashtbl.create 10 in *)
-  (* let idx_pt_hist = Hashtbl.create 10 in *)
-  (* while (read_int ()) = 1 do *)
-  (*   printf "Edge to fold over : "; *)
-  (*   let edge = Line.of_string (read_line ()) in *)
-  (*   let outer, inner = do_fold orig [] edge in *)
-  (*   printf "continue? [1/0] : "; *)
-  (* done *)
+let intersect_poly poly (p1,_ as edge) =
+  let vtc = ref [] in
+  let _ = List.fold_left (fun (_pid,prev) (cid,cur) ->
+    match Line.get_intersect edge (prev,cur) with
+    | None -> (cid,cur)
+    | Some p -> vtc := p::!vtc; (cid,cur)) (List.last poly) poly
+  in
+  let vtc = List.unique ~cmp:Pt.eq !vtc in
+  let vtcl = List.map (fun pt -> Line.length2 (p1,pt), pt) vtc in
+  let vtcls = List.sort ~cmp:(fun (l1,_) (l2,_) -> R.compare l1 l2) vtcl in
+  snd (List.first vtcls), snd (List.last vtcls)
+
+let update_edges edge =
+  let new_polygons = List.fold_left begin fun a poly ->
+    let (ps,_ as e) = intersect_poly poly edge in (* edge on vertex? *)
+    let s = find_start_indexed ps poly in
+    (*edge not indexed until now*)
+    let top, bot = get_polygons_indexed s e poly in
+    top::bot::a
+  end [] !polygons
+  in
+  polygons := new_polygons
+
+(* indexed polygons end -----------------------------------------------*)
+
+let do_fold outer_vertices _inner_vertices (p1,_p2 as edge) = (* fold leftward *)
+  update_edges edge;
+  List.iteri (fun i p -> Printf.printf "Poly %d :\n" i; List.iter (fun (i,p) -> Printf.printf " %d : %s\n" i (Pt.show p)) p) !polygons;
+  let start = find_start p1 outer_vertices in
+  let top_poly, bot_poly = get_polygons start edge outer_vertices in
+  union top_poly bot_poly
+
+let gen_folds () =
+  let open Printf in
+  (* let x0y0, x0y1, x1y1, x1y0 = (\*outer vertexes*\) *)
+  (*   ({x = R.zero; y = R.zero}, *)
+  (*    {x = R.zero; y = R.one}, *)
+  (*    {x = R.one; y = R.one}, *)
+  (*    {x = R.one; y = R.zero}) *)
+  (* in *)
+  (* let rec loop i v = *)
+  while (read_int ()) = 1 do
+    printf "Edge to fold over : ";
+    let edge = Line.of_string (read_line ()) in
+    let _outer = do_fold orig [] edge in
+    printf "continue? [1/0] : ";
+  done
