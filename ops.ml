@@ -131,20 +131,47 @@ let classify p =
   | [] -> `Empty
   | _::_::_ -> `Multi
   | [x] ->
+    let edges = Poly.edges x in
+    let lens = List.map Line.length2 edges in
     match List.length x with
     | 3 ->
-      let edges = Poly.edges x in
-      if (edges |> List.filter (fun l -> R.eq (Line.length2 l) R.one) |> List.length) = 2 then `OriginTriangle else `Triangle
+      if (lens |> List.filter (R.eq R.one) |> List.length) = 2 then `OriginTriangle else `Triangle
     | 4 ->
-      let edges = Poly.edges x in
-      let lens = edges |> List.map Line.length2 in
       let n = lens |> List.filter (fun l -> R.eq l R.one) |> List.length in
       let square = lens |> List.for_all (fun l -> l = List.hd lens) in
       if n = 4 then `OriginSquare
       else if square then `Square
       else if n >= 2 then `OriginQuadrangle2
-      else if n = 1 then `OriginQuadrangle1
-      else `Quadrangle
+      else if n = 0 then `Quadrangle
+      else
+      let qqq () =
+      match List.filter (fun l -> R.eq (Line.length2 l) (R.div R.one R.(int 4))) edges with
+      | [(a1,a2);(b1,b2)] ->
+        let base = match List.filter (fun l -> R.eq (Line.length2 l) R.one) edges with
+        | [base] -> base
+        | _ -> assert false
+        in
+        let points = [a1;a2;b1;b2] in
+        let count p l = List.filter (Pt.eq p) l |> List.length in
+        let count = List.map (fun p -> count p points, p) points in
+        begin match List.map snd @@ List.filter (fun (c,_) -> c = 2) count,
+                    List.map snd @@ List.filter (fun (c,_) -> c = 1) count with
+        | [c;_], [a;b] ->
+          if not @@ R.eq R.zero (Pt.dot (Line.vector (c,a)) (Line.vector (c,b))) then raise Not_found;
+          let (v,other) =
+                  if Line.is_end base a then (a,c), b else 
+                  if Line.is_end base b then (b,c), a else
+                  assert false
+          in
+          if not @@ R.eq R.zero (Pt.dot (Line.vector v) (Line.vector base)) then raise Not_found;
+          let (bb1,bb2) = base in
+          let bbb = if Pt.eq (fst v) bb1 then bb2 else bb1 in
+          `QQQ (bbb,fst v,snd v,other)
+        | _ -> `Quadrangle
+        end
+      | _ -> `Quadrangle
+      in
+      (try qqq ()  with Not_found -> `Quadrangle)
     | n -> `Other n
 
 let neighbors' l idx =
