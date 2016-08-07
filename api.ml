@@ -121,9 +121,13 @@ let submit_solutions l =
   let result = sprintf "data/%s.result" in
   let perfect = sprintf "data/%s.perfect_score" in
   let best = sprintf "data/%s.best" in
+  let block = sprintf "data/%s.block" in
   l
   |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
   |> List.iter begin fun s ->
+    match Sys.file_exists @@ block s with
+    | true -> eprintfn "skipping %s due to %s" s (block s)
+    | false ->
     let prev_r =
       match Api_j.solution_of_string @@ Std.input_file (result s) with
       | exception _ -> 0.
