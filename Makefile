@@ -45,7 +45,7 @@ oasis:
 	oasis setup -setup-update dynamic
 
 %.out: %.in
-	./origami.native solve best_bb $< > $@ || ./origami.native solve bb $< > $@ || rm $@
+	./origami.native solve auto $< > $@ || rm $@
 
 %.done: %.out
 	cp $< $@

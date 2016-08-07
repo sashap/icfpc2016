@@ -82,6 +82,7 @@ let () =
       | "best_bb" -> Ops.solve_best_bb
       | "single_facet" -> Ops.solve_single_facet
       | "origin_tri" -> Ops.solve_origin_tri
+      | "auto" -> Ops.solve_auto
       | _ -> assert false
     in
     files |> List.iter begin fun file ->

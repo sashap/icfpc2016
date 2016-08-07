@@ -185,6 +185,12 @@ let solve_origin_tri file problem =
     end
   | _ -> failwith "unfitting shape :("
 
+let solve_auto file p =
+  try solve_origin_tri file p with _ ->
+  try solve_single_facet file p with _ ->
+  try solve_best_bb file p with _ ->
+  try solve_bb file p with _ -> fail "auto %s failed" file
+
 let neighbors' l idx =
   try
     let len = List.length l - 1 in
