@@ -203,7 +203,7 @@ let which_side (a,b) pt =
     Left
 
 let is_on_line (a,b) pt =
-  which_side (a,b) pt = On
+  Pt.eq pt a || Pt.eq pt b || which_side (a,b) pt = On
 
 let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
   let open R in

@@ -194,7 +194,7 @@ let get_polygons start (p1,p2 as edge) overt =
   in loop 0 overt;
      !top, (List.rev !bot)
 
-  let do_fold outer_vertices _inner_vertices (p1,_p2 as edge) = (* fold leftward *)
+  let do_fold outer_vertices _inner_vertices (p1,p2 as edge) = (* fold leftward *)
     (*fold and rearange outer vertices*)
     Printf.printf "ready to start\n";
     let start = find_start p1 outer_vertices in
@@ -205,51 +205,101 @@ let get_polygons start (p1,p2 as edge) overt =
     let nouter = ref [p1] in
     let ninner = ref [] in
     Printf.printf "ready to intersect\n";
-    let rec new_poly act_st stl_st act_cur stl_cur active stale = (*intersect goes here*)
+    let rec new_poly (ba,bs) act_st stl_st act_cur stl_cur active stale = (*intersect goes here*)
       let switch_st = function `In -> `Out | `Out -> `In in
-      let get_first_intersect s stl (_a,b as candidate) =
+      let show_st = function `In -> "inside" | `Out -> "outside" in
+      let neighbors l e =
+        try
+          let len = List.length l - 1 in
+          if len < 3 then None else
+            let idx, _ = List.findi (fun _ p -> Pt.eq p e) l in
+            match idx with
+            | 0 -> Some (List.last l, List.nth l 1)
+            | i when i = len -> Some (List.nth l (i-1),List.hd l)
+            | i -> Some (List.nth l (i-1),List.nth l (i+1))
+        with _ ->
+          None
+      in
+      let get_first_intersect s stl (a,b as candidate) state =
+        (* if Pt.eq a p1 && Pt.eq b p2 then *)
+        (*   None *)
+        (* else *)
         let rec loop s stl =
+          Printf.printf "gonna search from %s for fi of (%s;%s) with %s::%s \n"(show_st state)(Pt.show a)(Pt.show b)(Pt.show s) (Poly.show stl);
           match stl with
           | [] -> None
           | p::tl ->
             match Line.get_intersect (s,p) candidate with
             | None -> loop p tl
             | Some pt ->
-              let switched = Line.is_on_line (s,p) b in
-              if not switched then (*just put wherever? and keep looking for intersect*)
+              let switched =
+                if Pt.eq pt b || Line.eq (s,p) candidate then
+                  false
+                else if Pt.eq pt a then
+                  if tl = [] then
+                    false
+                  else
+                    if Pt.eq pt p then
+                      false (*check with regard to the next edge*)
+                    else
+                    match Line.which_side (s,p) b with
+                    | Left -> state = `Out
+                    | Right -> state = `In
+                    | On -> false
+                else
+                  true
+              in
+              if switched then
+                Some pt
+              else (*just put wherever? and keep looking for intersect*)
                 (* ((match state with *)
                 (*   | `Out -> nouter := b::!nouter *)
                 (*   | `In -> ninner := b::!ninner); *)
                 (*  visited := b::!visited; *)
                 (*  loop p tl) *)
                 loop p tl
-              else
-                Some pt
-        in loop s stl
+        in
+        let r = loop s stl in
+        Printf.printf "done search for fi: %s\n" (match r with None -> "none" | Some s -> Pt.show s);
+        r
       in
       match active,stale with
       | [],[] -> ()
       | [],stale -> (*no points in this poly, switch to other*)
-        new_poly stl_st act_st stl_cur act_cur stale active
+        new_poly (bs,ba) stl_st act_st stl_cur act_cur stale active
       | x::actv_tl,_ ->
-        (match get_first_intersect stl_cur stale (act_cur, x) with
+        (match get_first_intersect stl_cur stale (act_cur, x) act_st with
          | Some pt ->
            if not @@ (List.exists (fun x -> Pt.eq x pt) !visited) then (*switch to other poly and mark intersect as current point in this poly*)
              (nouter := pt::!nouter;
               visited := pt::!visited;
-              new_poly stl_st (switch_st act_st) stl_cur pt stale active)
+              new_poly (bs,ba) stl_st (switch_st act_st) stl_cur pt stale active)
            else (*just ignore intersection then*)
              ((match act_st with
-               | `Out -> nouter := x::!nouter
-               | `In -> ninner := x::!ninner);
-               new_poly (switch_st act_st) stl_st x stl_cur actv_tl stale)
+               | `In -> nouter := x::!nouter
+               | `Out -> ninner := x::!ninner);
+               new_poly (ba,bs) (switch_st act_st) stl_st x stl_cur actv_tl stale)
          | None -> (*no intersects for this segment, check next*)
            (match act_st with
             | `Out -> nouter := x::!nouter
             | `In -> ninner := x::!ninner);
-           new_poly stl_st act_st x stl_cur actv_tl stale);
+           new_poly (ba,bs) act_st stl_st x stl_cur actv_tl stale);
     in
-    new_poly `Out `In  p1 p1 top_poly bot_poly;
+    let outer_first t b =
+      let rec is_top tl bl =
+        match tl,bl with
+        | [],_ | _,[] -> true
+        | p::tl,k::bl ->
+          let bi = not @@ is_inside p b && is_inside k t in
+          let ti = is_inside p b && not @@ is_inside k t in
+          if ti != bi then bi else is_top tl bl
+      in
+      if is_top t b then t,b else b,t
+    in
+    let o,i = outer_first top_poly bot_poly in
+    Printf.printf "outer:\n o : %s\n i : %s\n" (Poly.show o) (Poly.show i);
+    new_poly (o,i) `Out `In p1 p1 o i;
+    Printf.printf "folded:\n o : %s\n i : %s\n" (Poly.show !nouter) (Poly.show !ninner);
     !nouter, !ninner
 
 let gen_folds edge =
@@ -282,7 +332,7 @@ let intersect_edges p1 p2 =
       let orig = fst e in
       let l = l |> List.map (fun x -> Line.length2 (orig,x), x) |> List.sort ~cmp:(fun a b -> R.compare (fst a) (fst b)) |> List.map snd in
       let (edges,last) = Poly.connect (orig :: l) in
-      tuck e1 (last, snd e);
+     tuck e1 (last, snd e);
       List.iter (tuck e1) edges
   end;
   match !ok with
