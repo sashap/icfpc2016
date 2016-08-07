@@ -56,4 +56,6 @@ type problem_subm = {
   publish_time : int;
   ok : bool;
   problem_id : int;
+  solution_size : int;
+  problem_size : int;
 }

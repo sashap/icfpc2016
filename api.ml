@@ -189,5 +189,5 @@ let submit_problems () =
     Std.output_file ~filename:(sent s) ~text:prob;
     let res = Api_j.problem_subm_of_string res in
     assert res.ok;
-    printfn "problem #%d will be published on %d" res.problem_id res.publish_time
+    printfn "problem #%d (solution size %d) will be published on %d" res.problem_id res.solution_size res.publish_time
   end
