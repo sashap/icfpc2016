@@ -62,10 +62,10 @@ let () =
           match List.length x with
           | 3 ->
             let edges = Poly.edges x in
-            if (edges |> List.filter (fun l -> Line.length2 l = R.one) |> List.length) = 2 then "origin triangle" else "triangle"
+            if (edges |> List.filter (fun l -> R.eq (Line.length2 l) R.one) |> List.length) = 2 then "origin triangle" else "triangle"
           | 4 ->
             let edges = Poly.edges x in
-            let n = edges |> List.filter (fun l -> Line.length2 l = R.one) |> List.length in
+            let n = edges |> List.filter (fun l -> R.eq (Line.length2 l) R.one) |> List.length in
             if n = 4 then "origin square" else if n >= 2 then "origin quadrangle" else "quadrangle"
           | n -> sprintf "%d vertices" n
         in
