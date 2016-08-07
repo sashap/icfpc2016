@@ -128,6 +128,9 @@ let submit_solutions l =
     match Sys.file_exists @@ block s with
     | true -> eprintfn "skipping %s due to %s" s (block s)
     | false ->
+    match Sys.file_exists @@ perfect s with
+    | true -> eprintf "skipping %s due to %s" s (perfect s)
+    | false ->
     let prev_r =
       match Api_j.solution_of_string @@ Std.input_file (result s) with
       | exception _ -> 0.
