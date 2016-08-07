@@ -192,6 +192,9 @@ let eq (a,b) (c,d) = (Pt.eq a c && Pt.eq b d) || (Pt.eq b c && Pt.eq a d)
 let length2 ((a,b) : t) = (* (x - x)^2 + (y - y)^2 no sqrt *)
   R.Infix.(R.sqr (a.x - b.x) + R.sqr (a.y - b.y))
 
+let is_zero (a,b) = Pt.eq a b
+let is_end (a,b) p = Pt.eq a p || Pt.eq b p
+
 let show (a,b) = Pt.show a ^ " " ^ Pt.show b
 
 let which_side (a,b) pt =
