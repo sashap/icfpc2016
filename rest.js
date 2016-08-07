@@ -112,8 +112,9 @@ var filterTeamProblems = function(problems, teamId){
 };
 
 // Perform analysis on problem effectiveness
-var analyzeProblemStrength = function(problems){
+var analyzeProblemStrength = function(problems, orderKey, orderDesc){
 
+  orderKey = orderKey || "id";
   console.log("Running analysis on ", problems.length, "problems");
 
   return problems.map(function(problem){
@@ -143,42 +144,47 @@ var analyzeProblemStrength = function(problems){
     var partialSolutions = totalSolutions - perfectSolutions;
     var s = problem.solution_size;
     var n = perfectSolutions + 1;
+    var teamScore = (5000 - problem.solution_size) / n;
+    var pefectSolutionScore = (s / n ) || 0;
 
-    problem.strength = {
-      s: s,
-      n: n,
-      partialSolutions: partialSolutions,
+    return {
+      id: problem.problem_id,
+      hash: problem.problem_spec_hash,
+      teamScore: teamScore,
       perfectSolutions: perfectSolutions,
-      teamScore: (5000 - problem.solution_size) / n,
+      partialSolutions: partialSolutions,
+      perfectSolutionScore: pefectSolutionScore,
       solveRatio: (perfectSolutions / totalSolutions) || 0,
       averagePartialResemblance: (partialResemblanceSum / partialSolutions) || 0,
       averageResemblance: (allResemblanceSum / totalSolutions) || 0,
+      s: s,
+      n: n,
     };
 
-    return problem;
-
+  }).sort(function(a,b){
+    if (orderDesc) {
+      return b[orderKey] - a[orderKey]; 
+    } else {
+      return a[orderKey] - b[orderKey];
+    };
+    
   });
 
 };
 
 
 // getAllProblems().then(function(problems){
-
 //   // Download and save new problems
 //   downloadNewProblems(problems);
-
 // });
+
 
 getAllProblems().then(function(problems){
     
   var teamProblems = filterTeamProblems(problems, myTeamId);
-  var analyzedProblems = analyzeProblemStrength(teamProblems);
+  var analyzedProblems = analyzeProblemStrength(teamProblems, 'teamScore', true);
 
   console.log("Problems Analysis");
-  analyzedProblems.forEach(function(problem){
-    console.log("Problem id: ", problem.problem_id);
-    console.log("-------------------------------------");
-    console.log(problem.strength);
-  });
+  console.log(analyzedProblems);
 
 });
