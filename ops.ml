@@ -150,167 +150,23 @@ let solve_bb shape =
 let solve_best_bb shape =
   best_box shape |> fold_bb |> fst
 
-let find_start nv1 overt =
-  let rec loop lst i =
-    match lst with
-    | [] -> failwith "not on edge!"
-    | v1::[] ->
-      let v2 = List.hd overt in
-      if Line.is_on_line (v1,v2) nv1 then
-        i
-      else
-        loop [] (i+1)
-    | v1::(v2::_ as tl) ->
-      if Line.is_on_line (v1,v2) nv1 then
-        i
-      else
-        loop tl (i+1)
-  in
-  loop overt 0
-let get_polygons start (p1,p2 as edge) overt =
-  let top = ref [p1] in
-  let bot = ref [p2] in
-  let rec loop i overt =
-    (* Printf.printf "walking: %d on %s\n top: %s\n bot: %s\n" i (Poly.show overt) (Poly.show !top) (Poly.show !bot); *)
-    let get_next started l =
-      match l with
-      | [] -> assert false
-      | (pt::overt) ->
-      if started then
-        if Line.which_side edge pt = Right then
-          `Top (mirror edge pt),overt
-        else
-          `Bot pt, overt
-      else
-        `No, overt@[pt]
-    in
-    (match get_next (i > start) overt with
-     | `Top p,[] -> top := p2::p::!top; bot:= p1::!bot;
-     | `Bot p,[] -> bot := p1::p::!bot; top:= p2::!top;
-     | _,[] -> ()
-     | `Top p, ovt -> top := p::!top; loop (i+1) ovt
-     | `Bot p, ovt -> bot := p::!bot; loop (i+1) ovt
-     | `No, ovt -> loop (i+1) ovt);
-  in loop 0 overt;
-     !top, (List.rev !bot)
+let neighbors' l idx =
+  try
+    let len = List.length l - 1 in
+    if len < 3 then None else
+      match idx with
+      | 0 -> Some (List.last l, List.nth l 1)
+      | i when i = len -> Some (List.nth l (i-1),List.hd l)
+      | i -> Some (List.nth l (i-1),List.nth l (i+1))
+  with _ ->
+    None
 
-  let do_fold outer_vertices _inner_vertices (p1,p2 as edge) = (* fold leftward *)
-    (*fold and rearange outer vertices*)
-    Printf.printf "ready to start\n";
-    let start = find_start p1 outer_vertices in
-    Printf.printf "ready to fold : %d (%s) \n" start (Pt.show @@ List.nth outer_vertices start);
-    let top_poly, bot_poly = get_polygons start edge outer_vertices in
-    Printf.printf "folded:\n t : %s\n b : %s\n" (Poly.show top_poly) (Poly.show bot_poly);
-    let visited = ref [p1] in
-    let nouter = ref [p1] in
-    let ninner = ref [] in
-    Printf.printf "ready to intersect\n";
-    let rec new_poly (ba,bs) act_st stl_st act_cur stl_cur active stale = (*intersect goes here*)
-      let switch_st = function `In -> `Out | `Out -> `In in
-      let show_st = function `In -> "inside" | `Out -> "outside" in
-      let neighbors l e =
-        try
-          let len = List.length l - 1 in
-          if len < 3 then None else
-            let idx, _ = List.findi (fun _ p -> Pt.eq p e) l in
-            match idx with
-            | 0 -> Some (List.last l, List.nth l 1)
-            | i when i = len -> Some (List.nth l (i-1),List.hd l)
-            | i -> Some (List.nth l (i-1),List.nth l (i+1))
-        with _ ->
-          None
-      in
-      let get_first_intersect s stl (a,b as candidate) state =
-        (* if Pt.eq a p1 && Pt.eq b p2 then *)
-        (*   None *)
-        (* else *)
-        let rec loop s stl =
-          Printf.printf "gonna search from %s for fi of (%s;%s) with %s::%s \n"(show_st state)(Pt.show a)(Pt.show b)(Pt.show s) (Poly.show stl);
-          match stl with
-          | [] -> None
-          | p::tl ->
-            match Line.get_intersect (s,p) candidate with
-            | None -> loop p tl
-            | Some pt ->
-              let switched =
-                if Pt.eq pt b || Line.eq (s,p) candidate then
-                  false
-                else if Pt.eq pt a then
-                  if tl = [] then
-                    false
-                  else
-                    if Pt.eq pt p then
-                      false (*check with regard to the next edge*)
-                    else
-                    match Line.which_side (s,p) b with
-                    | Left -> state = `Out
-                    | Right -> state = `In
-                    | On -> false
-                else
-                  true
-              in
-              if switched then
-                Some pt
-              else (*just put wherever? and keep looking for intersect*)
-                (* ((match state with *)
-                (*   | `Out -> nouter := b::!nouter *)
-                (*   | `In -> ninner := b::!ninner); *)
-                (*  visited := b::!visited; *)
-                (*  loop p tl) *)
-                loop p tl
-        in
-        let r = loop s stl in
-        Printf.printf "done search for fi: %s\n" (match r with None -> "none" | Some s -> Pt.show s);
-        r
-      in
-      match active,stale with
-      | [],[] -> ()
-      | [],stale -> (*no points in this poly, switch to other*)
-        new_poly (bs,ba) stl_st act_st stl_cur act_cur stale active
-      | x::actv_tl,_ ->
-        (match get_first_intersect stl_cur stale (act_cur, x) act_st with
-         | Some pt ->
-           if not @@ (List.exists (fun x -> Pt.eq x pt) !visited) then (*switch to other poly and mark intersect as current point in this poly*)
-             (nouter := pt::!nouter;
-              visited := pt::!visited;
-              new_poly (bs,ba) stl_st (switch_st act_st) stl_cur pt stale active)
-           else (*just ignore intersection then*)
-             ((match act_st with
-               | `In -> nouter := x::!nouter
-               | `Out -> ninner := x::!ninner);
-               new_poly (ba,bs) (switch_st act_st) stl_st x stl_cur actv_tl stale)
-         | None -> (*no intersects for this segment, check next*)
-           (match act_st with
-            | `Out -> nouter := x::!nouter
-            | `In -> ninner := x::!ninner);
-           new_poly (ba,bs) act_st stl_st x stl_cur actv_tl stale);
-    in
-    let outer_first t b =
-      let rec is_top tl bl =
-        match tl,bl with
-        | [],_ | _,[] -> true
-        | p::tl,k::bl ->
-          let bi = not @@ is_inside p b && is_inside k t in
-          let ti = is_inside p b && not @@ is_inside k t in
-          if ti != bi then bi else is_top tl bl
-      in
-      if is_top t b then t,b else b,t
-    in
-    let o,i = outer_first top_poly bot_poly in
-    Printf.printf "outer:\n o : %s\n i : %s\n" (Poly.show o) (Poly.show i);
-    new_poly (o,i) `Out `In p1 p1 o i;
-    Printf.printf "folded:\n o : %s\n i : %s\n" (Poly.show !nouter) (Poly.show !ninner);
-    !nouter, !ninner
-
-let gen_folds edge =
-  (* let x0y0, x0y1, x1y1, x1y0 = (\*outer vertexes*\) *)
-  (*   ({x = R.zero; y = R.zero}, *)
-  (*    {x = R.zero; y = R.one}, *)
-  (*    {x = R.one; y = R.one}, *)
-  (*    {x = R.one; y = R.zero}) *)
-  (* in *)
-  let outer_vertices = orig in
-  do_fold outer_vertices [] edge
+let neighbors l e =
+  try
+      let idx, _ = List.findi (fun _ p -> Pt.eq p e) l in
+      neighbors' l idx
+  with _ ->
+    None
 
 let intersect_edges p1 p2 =
   let e1 = ref [] in
@@ -381,3 +237,71 @@ let union p1 p2 =
         loop last p
     in
     loop (Pt.sub lo Pt.one) start
+
+let find_start nv1 overt =
+  let rec loop lst i =
+    match lst with
+    | [] -> failwith "not on edge!"
+    | v1::[] ->
+      let v2 = List.hd overt in
+      if Line.is_on_line (v1,v2) nv1 then
+        i
+      else
+        loop [] (i+1)
+    | v1::(v2::_ as tl) ->
+      if Line.is_on_line (v1,v2) nv1 then
+        i
+      else
+        loop tl (i+1)
+  in
+  loop overt 0
+
+let get_polygons start (p1,p2 as edge) overt =
+  let top = ref [p1] in
+  let bot = ref [p2] in
+  let rec loop i overt =
+    (* Printf.printf "walking: %d on %s\n top: %s\n bot: %s\n" i (Poly.show overt) (Poly.show !top) (Poly.show !bot); *)
+    let get_next started l =
+      match l with
+      | [] -> assert false
+      | (pt::overt) ->
+      if started then
+        if Line.which_side edge pt = Right then
+          `Top (mirror edge pt),overt
+        else
+          `Bot pt, overt
+      else
+        `No, overt@[pt]
+    in
+    (match get_next (i > start) overt with
+     | `Top p,[] -> top := p2::p::!top; bot:= p1::!bot;
+     | `Bot p,[] -> bot := p1::p::!bot; top:= p2::!top;
+     | _,[] -> ()
+     | `Top p, ovt -> top := p::!top; loop (i+1) ovt
+     | `Bot p, ovt -> bot := p::!bot; loop (i+1) ovt
+     | `No, ovt -> loop (i+1) ovt);
+  in loop 0 overt;
+     !top, (List.rev !bot)
+
+  let do_fold outer_vertices _inner_vertices (p1,p2 as edge) = (* fold leftward *)
+    let start = find_start p1 outer_vertices in
+    let top_poly, bot_poly = get_polygons start edge outer_vertices in
+    union top_poly bot_poly
+
+(* let gen_folds () = *)
+  (* let open Printf in *)
+  (* (\* let x0y0, x0y1, x1y1, x1y0 = (\\*outer vertexes*\\) *\) *)
+  (* (\*   ({x = R.zero; y = R.zero}, *\) *)
+  (* (\*    {x = R.zero; y = R.one}, *\) *)
+  (* (\*    {x = R.one; y = R.one}, *\) *)
+  (* (\*    {x = R.one; y = R.zero}) *\) *)
+  (* (\* in *\) *)
+  (* (\* let rec loop i v = *\) *)
+  (* let cpt_idx = Hashtbl.create 10 in *)
+  (* let idx_pt_hist = Hashtbl.create 10 in *)
+  (* while (read_int ()) = 1 do *)
+  (*   printf "Edge to fold over : "; *)
+  (*   let edge = Line.of_string (read_line ()) in *)
+  (*   let outer, inner = do_fold orig [] edge in *)
+  (*   printf "continue? [1/0] : "; *)
+  (* done *)

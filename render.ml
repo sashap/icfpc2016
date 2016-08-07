@@ -75,6 +75,6 @@ let render ?p ?s file =
 let render_poly p file = with_open_out_bin file (do_render ~shape:[p])
 
 let rndr ?(edge=({x = R.one; y = R.zmake 1 2},{x = R.zmake 1 2; y = R.one})) () =
-  let o,i = Ops.gen_folds edge in
+  let o = Ops.do_fold Otypes.orig [] edge in
   render_poly o "ofolded.png";
-  render_poly i "ifolded.png"
+  (* render_poly i "ifolded.png" *)
