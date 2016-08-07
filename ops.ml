@@ -298,12 +298,23 @@ let find_start nv1 overt =
 (* indexed polygons here -----------------------------------------------*)
 
 let idx_pt = Hashtbl.create 10
+let pt_idx = Hashtbl.create 10
+let idx_pt_last = Hashtbl.create 10
 let v_idx = ref 0
+
+let update_vertex (i,p) = (* oh the uglyness *)
+  Hashtbl.replace idx_pt_last i p
+
 let store_vertex p  =
-  let cidx = !v_idx in
-  Hashtbl.add idx_pt cidx p;
-  incr v_idx;
-  (cidx,p)
+  match Hashtbl.find_option pt_idx p with
+  | Some i -> (i, p)
+  | None ->
+    let cidx = !v_idx in
+    Hashtbl.add idx_pt cidx p;
+    Hashtbl.add pt_idx p cidx;
+    update_vertex (cidx,p);
+    incr v_idx;
+    (cidx,p)
 
 (* let pt_idx = Hashtbl.create 10 *)
 let polygons = ref [(List.map store_vertex orig)]
@@ -322,6 +333,7 @@ let get_polygons_indexed start (p1,p2 as edge) overt =
       if started then
         if Line.which_side edge ptc = Right then
           let npt = mirror edge ptc in
+          update_vertex (pid,npt);
           `Top (pid,npt),overt
         else
           `Bot pt, overt
@@ -370,7 +382,7 @@ let intersect_poly poly (p1,_ as edge) =
 
 let update_edges edge =
   let new_polygons = List.fold_left begin fun a poly ->
-    let (ps,_ as e) = intersect_poly poly edge in (* edge on vertex? *)
+    let (ps,_ as e) = intersect_poly poly edge in (* vertex on edge? *)
     let s = find_start_indexed ps poly in
     (*edge not indexed until now*)
     let top, bot = get_polygons_indexed s e poly in
@@ -379,11 +391,30 @@ let update_edges edge =
   in
   polygons := new_polygons
 
+
+let form_solution () =
+  let open Printf in
+  let vert_orig =
+    Hashtbl.fold (fun i p a -> (i,Pt.show p)::a) idx_pt []
+    |> List.sort ~cmp:(fun (i1,_) (i2,_) -> compare i1 i2)
+    |> List.map snd in
+  let src = sprintf "%d\n%s\n" (List.length vert_orig) (String.join "\n" vert_orig) in
+
+  let polygons = List.map (fun p -> sprintf "%d %s" (List.length p) (String.join " " (List.map (fun (i,_) -> string_of_int i) p))) !polygons in
+  let facets = sprintf "%d\n%s\n" (List.length polygons) (String.join "\n" polygons) in
+
+  let vert_fin =
+    Hashtbl.fold (fun i p a -> (i,Pt.show p)::a) idx_pt_last []
+    |> List.sort ~cmp:(fun (i1,_) (i2,_) -> compare i1 i2)
+    |> List.map snd in
+  let dest = sprintf "%s\n" (String.join "\n" vert_fin) in
+
+  sprintf "%s%s%s" src facets dest
+
 (* indexed polygons end -----------------------------------------------*)
 
-let do_fold outer_vertices _inner_vertices (p1,_p2 as edge) = (* fold leftward *)
+let do_fold outer_vertices (p1,_p2 as edge) = (* fold leftward *)
   update_edges edge;
-  List.iteri (fun i p -> Printf.printf "Poly %d :\n" i; List.iter (fun (i,p) -> Printf.printf " %d : %s\n" i (Pt.show p)) p) !polygons;
   let start = find_start p1 outer_vertices in
   let top_poly, bot_poly = get_polygons start edge outer_vertices in
   union top_poly bot_poly
@@ -397,9 +428,12 @@ let gen_folds () =
   (*    {x = R.one; y = R.zero}) *)
   (* in *)
   (* let rec loop i v = *)
-  while (read_int ()) = 1 do
+  let flag = ref true in
+  while !flag do
     printf "Edge to fold over : ";
     let edge = Line.of_string (read_line ()) in
-    let _outer = do_fold orig [] edge in
+    let _outer = do_fold orig edge in
+    Printf.printf "%s" @@ form_solution ();
     printf "continue? [1/0] : ";
-  done
+    flag := (read_int ()) = 1
+  done;
