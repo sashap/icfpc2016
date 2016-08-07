@@ -1,0 +1,22 @@
+{
+  "name": "icfpc2016",
+  "version": "1.0.0",
+  "description": "ICFPC 2016 team Zerg eats taco\"",
+  "main": "rest.js",
+  "dependencies": {
+    "bluebird": "^3.4.1",
+    "node-rest-client": "^2.0.1",
+    "request": "^2.74.0",
+    "request-promise": "^4.1.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@ygrek.org.ua:icfpc2016.git"
+  },
+  "author": "Sasha Parfenov",
+  "license": "Apache-2.0"
+}
