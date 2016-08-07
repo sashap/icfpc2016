@@ -238,6 +238,7 @@ var analyzeProblemStrength = function(problems, orderKey, orderDesc, fullStats){
 
     var result = {
       id: problem.problem_id,
+      class: problemToClassMap[problem.problem_id],
       teamScore: teamScore.toFixed(argv.rounded),
       perfectSolutions: perfectSolutions,
       partialSolutions: partialSolutions,
@@ -265,25 +266,32 @@ var analyzeProblemStrength = function(problems, orderKey, orderDesc, fullStats){
 
 };
 
+// Creates a map between problem id and a type/class of problem it is
 var getProblemToClassMap = function(sourceDir){
 
   var resultExt = 'result';
   var classExt = 'class'
 
   var resultFiles = glob.readdirSync(sourceDir + '/*.' + resultExt);
-
-  console.log("ResultFiles: ", resultFiles);
-
   var classFile;
-  return resultFiles.map(function(resultFile){
+
+  var results = {};
+  resultFiles.forEach(function(resultFile){
 
     classFile = path.dirname(resultFile) + '/' +  path.basename(resultFile, resultExt) + classExt;
 
-    console.log("Class file: ", classFile);
-
+    try {
+      resultFileContents = JSON.parse(fs.readFileSync(resultFile, "utf-8"));
+      classFileContents = fs.readFileSync(classFile, "utf-8");
+      if (resultFileContents.problem_id && classFileContents) {
+        results[resultFileContents.problem_id] = classFileContents;
+      }
+    } catch(error){
+      console.log("Failed to read ", resultFile, "and", classFile);
+    }
 
   });
-
+  return results;
 
 
 };
