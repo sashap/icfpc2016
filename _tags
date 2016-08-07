@@ -2,3 +2,4 @@
 # OASIS_STOP
 "top.top": thread,package(extlib,vg.cairo,curl,atdgen,zarith)
 <*_t.ml> or <*_j.ml> or <*_v.ml>: warn(-27-32)
+"data" or "problems" or "node_modules": -traverse
