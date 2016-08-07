@@ -347,3 +347,16 @@ let intersect_edges p1 p2 =
   | false, false -> assert false (* disjoint *)
   | true, true -> assert false (* impossible *)
 
+let union p1 p2 =
+  match intersect_edges p1 p2 with
+  | `Outer p -> p
+  | `Edges e ->
+    let points = Points.elements @@ List.fold_left (fun acc (a,b) -> Points.add b (Points.add a acc)) Points.empty e in
+    let (lo,_) = bounding_box @@ List.map (fun (a,b) -> [a;b]) e in
+    let (start,_) =
+      List.fold_left (fun (_,m as acc) p' -> let mp' = Pt.sub p' lo in if Pt.compare mp' m < 0 then p',mp' else acc)
+        (List.hd points, Pt.sub (List.hd points) lo) points
+    in
+    printfn "start %s" (Pt.show start);
+    points
+

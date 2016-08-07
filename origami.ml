@@ -68,7 +68,7 @@ let () =
   | "submit_s"::[] -> Api.submit_all_solutions ()
   | "submit_s"::l -> Api.submit_solutions l
   | "submit_p"::[] -> Api.submit_problems ()
-  | "union"::a::b::out::[] ->
+  | "intersect_edges"::a::b::out::[] ->
     let a = Problem.input a in
     let b = Problem.input b in
     begin match Ops.intersect_edges (List.hd a.shape) (List.hd b.shape) with
@@ -79,6 +79,11 @@ let () =
       printfn "contains";
       with_open_out_bin out @@ Render.do_render ~shape:[p]
     end
+  | "union"::a::b::out::[] ->
+    let a = Problem.input a in
+    let b = Problem.input b in
+    let p = Ops.union (List.hd a.shape) (List.hd b.shape) in
+    with_open_out_bin out @@ Render.do_render ~shape:[p]
   | "is_inside"::file::pt::[] ->
     let p = Problem.input file in
     List.map (Ops.is_inside (Pt.of_string pt)) p.shape |> List.iter (printfn "%B")
