@@ -267,6 +267,7 @@ end
 module Solution = struct
 type t = solution
 let show { src; dst; facets; } =
+  let facets = List.filter (fun l -> List.length l > 2) facets in
   let io = IO.output_string () in
   IO.printf io "%d\n" (Array.length src);
   Array.iter (fun p -> IO.printf io "%s\n" (Pt.show p)) src;
