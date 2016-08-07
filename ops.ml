@@ -283,7 +283,7 @@ let get_polygons start (p1,p2 as edge) overt =
   in loop 0 overt;
      !top, (List.rev !bot)
 
-  let do_fold outer_vertices _inner_vertices (p1,p2 as edge) = (* fold leftward *)
+  let do_fold outer_vertices _inner_vertices (p1,_p2 as edge) = (* fold leftward *)
     let start = find_start p1 outer_vertices in
     let top_poly, bot_poly = get_polygons start edge outer_vertices in
     union top_poly bot_poly
