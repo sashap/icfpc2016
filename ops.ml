@@ -307,13 +307,13 @@ let update_vertex (i,p) =
   Hashtbl.replace idx_pt_last i p
 
 let store_vertex p =
-  match Hashtbl.find_option pt_idx p with
+  match Hashtbl.find_option pt_idx (Pt.show p) with
   | Some i -> i
   | None ->
     let cidx = !v_idx in
     (* enqueue cidx p; *)
     Hashtbl.replace idx_pt cidx p;
-    Hashtbl.replace pt_idx p cidx;
+    Hashtbl.replace pt_idx (Pt.show p) cidx;
     incr v_idx;
     cidx
 
