@@ -16,12 +16,14 @@ let in_box file shape box =
   eprintfn "in_box %s [%s]: %g" (show_box box) file (try resemble sol_shape shape with _ -> nan);
   sol
 
+exception Other
+
 let single_facet file p =
   match classify p with
   | `OriginSquare ->
     eprintfn "single_facet %s" file;
     {src = Array.of_list Otypes.orig; facets = [[0;1;2;3]]; dst = Array.of_list @@ List.hd p.Problem.shape}
-  | _ -> failwith "unfitting shape :("
+  | _ -> raise Other
 
 let origin_tri file problem =
   match classify problem with
@@ -38,7 +40,7 @@ let origin_tri file problem =
       end
     | _ -> assert false
     end
-  | _ -> failwith "unfitting shape :("
+  | _ -> raise Other
 
 let origin_car_shape file p =
   let h = R.(div one two) in
@@ -54,24 +56,23 @@ let origin_car_shape file p =
       ];
       dst = [| right; right; right; sharp; right2; right2; obtuse |];
     }
-  | _ -> fail "not car-shape"
+  | _ -> raise Other
 
-let rectangle file problem =
-  match classify problem with
-  | `Rect ->
-    eprintfn "rectangle %s" file;
-    let low = List.fold_left (fun a p -> Pt.lo a p) Pt.zero (List.hd problem.shape) in
-    let high = List.fold_left (fun a p -> Pt.hi a p) Pt.zero (List.hd problem.shape) in
-    let sol,_ = Ops.fold_bb (low,high) in
+let rectangle file p =
+  match classify p with
+(*
+  | `Rect (w,h) ->
+    let pt = {x=w;y=h} in
+    let sol,sol_shape = Ops.fold_bb (Pt.zero,pt) in
+    eprintfn "rect %s [%s]: %g" (Pt.show pt) file (try resemble sol_shape p.Problem.shape with _ -> nan);
     sol
-  | _ -> failwith "not rectangle"
-
-
+*)
+  | _ -> raise Other
 
 let auto file p =
   try origin_tri file p with _ ->
   try single_facet file p with _ ->
+  try rectangle file p with _ ->
   try origin_car_shape file p with _ ->
   try best_bb file p with _ ->
-  try rectangle file p with _ ->
   try bb file p with _ -> fail "auto %s failed" file

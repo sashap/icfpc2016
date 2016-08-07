@@ -64,6 +64,7 @@ let () =
       | `OriginQuadrangle2 -> "origin quadrangle2"
       | `OriginQuadrangle1 -> "origin quadrangle1"
       | `CarShape _ -> "origin car-shape"
+      | `Rect _ -> "rectangle"
       | `Quadrangle -> "quadrangle"
       | `Other n -> sprintf "%d vertices" n
       in
@@ -85,6 +86,7 @@ let () =
       | "single_facet" -> Solve.single_facet
       | "origin_tri" -> Solve.origin_tri
       | "car_shape" -> Solve.origin_car_shape
+      | "rect" -> Solve.rectangle
       | "auto" -> Solve.auto
       | _ -> assert false
     in
@@ -99,6 +101,7 @@ let () =
       | true ->
       let p = Problem.input p in
       match meth file p with
+      | exception Solve.Other -> () (* ignore *)
       | exception exn -> eprintfn "failed %s : %s" file (Printexc.to_string exn)
       | solution -> save solution
     end

@@ -159,15 +159,11 @@ let find_car_shape edges =
   | _ -> None
 
 let classify p =
-  let which_rect l1 l2 =
-    let rs n = R.zmake n 1 in
-    let ri n = R.zmake 1 n in
-    let r = R.div l1 l2 in
-    if R.eq r (rs 4) || R.eq r (ri 4) then `Rect2 else
-    if R.eq r (rs 8) || R.eq r (ri 8) then `Rect4 else
-    if R.eq r (rs 16) || R.eq r (ri 16) then `Rect8 else
-    if R.eq r (rs 32) || R.eq r (ri 32) then `Rect16
-    else `OriginQuadrangle2
+  let is_rect edges =
+    let a = Array.of_list (List.last edges :: edges) in
+    if edges |> Array.of_list |> Array.mapi (fun i e -> Line.dot a.(i) e) |> Array.for_all (R.eq R.zero) then
+      Some (Line.length_imprecise a.(0), Line.length_imprecise a.(1))
+    else None
   in
   match p.Problem.shape with
   | [] -> `Empty
@@ -183,10 +179,17 @@ let classify p =
       let square = lens |> List.for_all (fun l -> l = List.hd lens) in
       if n = 4 then `OriginSquare
       else if square then `Square
-      else if n >= 2 then `OriginQuadrangle2
-      else if n = 0 then `Quadrangle
       else
-      begin match find_car_shape edges with Some x -> `CarShape x | None -> `Quadrangle end
+      begin match is_rect edges with
+      | Some dim -> `Rect (dim,x)
+      | None ->
+        if n >= 2 then `OriginQuadrangle2
+        else if n = 0 then `Quadrangle
+        else
+          match find_car_shape edges with
+          | Some x -> `CarShape x
+          | None -> `Quadrangle
+      end
     | n -> `Other n
 
 let neighbors' l idx =

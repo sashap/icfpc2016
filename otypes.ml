@@ -150,6 +150,17 @@ let rotate center angle pt =
   let m = R.Infix.{x = R.simplify (pt.x - center.x); y = R.simplify (pt.y - center.y)} in (*compensate center*)
   let r = R.Infix.{x = R.simplify ((m.x * cos) - (m.y * sin)); y = R.simplify ((m.x * sin) + (m.y * cos))} in (* rotate *)
   {x = R.add r.x center.x; y = R.add r.y center.y}
+(*
+let normalize a = let {x;y} = a in let n = dot a a in { x = R.div x n; y = R.div y n }
+let rotate_to a b =
+  let open R.Infix in
+  let {x=x1;y=y1} = normalize a in
+  let {x=x2;y=y2} = normalize b in
+  let a = x1 * x2 + y1 * y2 in
+  let b = x2 * y1 - x1 * y2 in
+  fun {x;y} -> { x = a * x + b * y; y = a * y - b * x }
+*)
+
 end
 
 module Points = Set.Make(Pt)
@@ -193,8 +204,12 @@ let eq (a,b) (c,d) = (Pt.eq a c && Pt.eq b d) || (Pt.eq b c && Pt.eq a d)
 let length2 ((a,b) : t) = (* (x - x)^2 + (y - y)^2 no sqrt *)
   R.Infix.(R.sqr (a.x - b.x) + R.sqr (a.y - b.y))
 
+let length_imprecise l = R.map Z.sqrt (length2 l)
+
 let is_zero (a,b) = Pt.eq a b
 let is_end (a,b) p = Pt.eq a p || Pt.eq b p
+
+let dot a b = Pt.dot (vector a) (vector b)
 
 let show (a,b) = Pt.show a ^ " " ^ Pt.show b
 
