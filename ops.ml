@@ -147,6 +147,26 @@ let solve_single_facet file problem =
     {src = Array.of_list Otypes.orig; facets = [[0;1;2;3]]; dst = Array.of_list pl}
   | _ -> failwith "unfitting shape :("
 
+let classify p =
+  match p.Problem.shape with
+  | [] -> `Empty
+  | _::_::_ -> `Multi
+  | [x] ->
+    match List.length x with
+    | 3 ->
+      let edges = Poly.edges x in
+      if (edges |> List.filter (fun l -> R.eq (Line.length2 l) R.one) |> List.length) = 2 then `OriginTriangle else `Triangle
+    | 4 ->
+      let edges = Poly.edges x in
+      let lens = edges |> List.map Line.length2 in
+      let n = lens |> List.filter (fun l -> R.eq l R.one) |> List.length in
+      let square = lens |> List.for_all (fun l -> l = List.hd lens) in
+      if n = 4 then `OriginSquare
+      else if square then `Square
+      else if n >= 2 then `OriginQuadrangle
+      else `Quadrangle
+    | n -> `Other n
+
 let neighbors' l idx =
   try
     let len = List.length l - 1 in
