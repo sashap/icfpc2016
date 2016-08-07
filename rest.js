@@ -27,8 +27,9 @@ var options = {
 
 var minDelay = 1000;
 
-var maxProblemsToGet = 5;
-var problemsDir = "data"
+var maxProblemsToGet = 50;
+var problemsDir = "data";
+var problemsExt = ".in";
 
 if (!fs.existsSync(problemsDir)){
   console.log("Creating ", problemsDir, " directory.");
@@ -59,24 +60,32 @@ request(options)
 })
 .then(function(data){
 
-  var problems = data.problems.slice(0,maxProblemsToGet);
+  var problems = data.problems
+    // Get all problems which do not exist yet
+    .filter(function(problem){
+      return !fs.existsSync(problemsDir + "/" + problem.problem_id + problemsExt);
+    })
+    // Set max problems to get
+    .slice(0,maxProblemsToGet);
 
-  console.log("Found", problems.length, "problems.");
+
+
+  console.log("Found", problems.length, "new problems and", data.problems.length - problems.length, " existing problems.");
 
   return Promise.map(
     problems, 
     function(problem){
 
+      var targetFile = problemsDir + "/" + problem.problem_id + problemsExt;
       var myDelay = minDelay - (Date.now() - lastTimepoint);
       lastTimepoint = Date.now();
       return request({ url: 'blob/' + problem.problem_spec_hash })
         .then(function(data){
 
-          console.log("Saving problem to ", problemsDir + "/" + problem.problem_id + '.input');
+          console.log("Saving problem to ", targetFile);      
           console.log("-------------------------------------------");
           console.log(data);
           console.log("-------------------------------------------");
-          var targetFile = problemsDir + "/" + problem.problem_id + '.input';
           fs.writeFile(targetFile, data);
           console.log("Waiting for API to cool down:", myDelay);
 
