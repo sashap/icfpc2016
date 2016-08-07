@@ -142,7 +142,8 @@ let classify p =
       let square = lens |> List.for_all (fun l -> l = List.hd lens) in
       if n = 4 then `OriginSquare
       else if square then `Square
-      else if n >= 2 then `OriginQuadrangle
+      else if n >= 2 then `OriginQuadrangle2
+      else if n = 1 then `OriginQuadrangle1
       else `Quadrangle
     | n -> `Other n
 

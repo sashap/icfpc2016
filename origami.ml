@@ -61,7 +61,8 @@ let () =
       | `Triangle -> "triangle"
       | `OriginSquare -> "origin square"
       | `Square -> "square"
-      | `OriginQuadrangle -> "origin quadrangle"
+      | `OriginQuadrangle2 -> "origin quadrangle2"
+      | `OriginQuadrangle1 -> "origin quadrangle1"
       | `Quadrangle -> "quadrangle"
       | `Other n -> sprintf "%d vertices" n
       in
