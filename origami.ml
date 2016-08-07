@@ -84,6 +84,7 @@ let () =
       | "best_bb" -> Solve.best_bb
       | "single_facet" -> Solve.single_facet
       | "origin_tri" -> Solve.origin_tri
+      | "car_shape" -> Solve.origin_car_shape
       | "auto" -> Solve.auto
       | _ -> assert false
     in

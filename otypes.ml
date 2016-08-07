@@ -173,6 +173,7 @@ let edges p =
 end
 
 let orig = Poly.of_string "0,0 1,0 1,1 0,1"
+let orig2 = Poly.of_string "0,0 0,1 1,1 1,0"
 
 type side = On | Left | Right
 

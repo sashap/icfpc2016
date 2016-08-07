@@ -40,8 +40,25 @@ let origin_tri file problem =
     end
   | _ -> failwith "unfitting shape :("
 
+let origin_car_shape file p =
+  let h = R.(div one two) in
+  match classify p with
+  | `QQQ (sharp, right, right2, obtuse) ->
+    eprintfn "car_shape %s" file;
+    { src = Array.of_list (orig2@[{x=R.zero;y=h};{x=h;y=R.one};{x=h;y=h}]);
+      facets = [
+        [0;4;6;3];
+        [1;4;6];
+        [1;5;6];
+        [2;5;6;3]
+      ];
+      dst = [| right; right; right; sharp; right2; right2; obtuse |];
+    }
+  | _ -> fail "not car-shape"
+
 let auto file p =
   try origin_tri file p with _ ->
   try single_facet file p with _ ->
+  try origin_car_shape file p with _ ->
   try best_bb file p with _ ->
   try bb file p with _ -> fail "auto %s failed" file
