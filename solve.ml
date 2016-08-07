@@ -58,7 +58,7 @@ let origin_car_shape file p =
     }
   | _ -> raise Other
 
-let rectangle file p =
+let rectangle _file p =
   match classify p with
 (*
   | `Rect (w,h) ->
