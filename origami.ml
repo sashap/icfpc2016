@@ -47,6 +47,32 @@ let () =
     let out = sprintf "data/%s.png" n in
     eprintfn "output to %s" out;
     Render.render ?p ?s out)
+  | "classify"::files ->
+    files |> List.iter begin fun file ->
+      match String.ends_with file ".in" with
+      | false -> eprintfn "skipping %s" file
+      | true ->
+      let perfect = Sys.file_exists (sprintf "%s.perfect_score" @@ String.slice ~last:(-3) file) in
+      let p = Problem.input file in
+      let r = match p.Problem.shape with
+      | [] -> "empty"
+      | _::_::_ -> "multiple polygons (holes?)"
+      | [x] ->
+        let cls =
+          match List.length x with
+          | 3 ->
+            let edges = Poly.edges x in
+            if (edges |> List.filter (fun l -> Line.length2 l = R.one) |> List.length) = 2 then "origin triangle" else "triangle"
+          | 4 ->
+            let edges = Poly.edges x in
+            let n = edges |> List.filter (fun l -> Line.length2 l = R.one) |> List.length in
+            if n = 4 then "origin square" else if n >= 2 then "origin quadrangle" else "quadrangle"
+          | n -> sprintf "%d vertices" n
+        in
+        cls
+      in
+      printfn "%s %s %s" file r (if perfect then "perfect" else "")
+    end
   | "bb"::file::[] ->
     let p = Problem.input file in
     let (lo,hi) = Ops.bounding_box p.shape in
