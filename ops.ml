@@ -140,14 +140,6 @@ let solve_in_box file shape box =
   eprintfn "in_box %s [%s]: %g" (show_box box) file (try resemble sol_shape shape with _ -> nan);
   sol
 
-let solve_single_facet file problem =
-  let open Problem in
-  match problem.shape,List.length problem.skel = 4  with
-  | [([_;_;_;_] as pl)],true ->
-    eprintfn "single_facet %s" file;
-    {src = Array.of_list Otypes.orig; facets = [[0;1;2;3]]; dst = Array.of_list pl}
-  | _ -> failwith "unfitting shape :("
-
 let classify p =
   match p.Problem.shape with
   | [] -> `Empty
@@ -167,6 +159,13 @@ let classify p =
       else if n >= 2 then `OriginQuadrangle
       else `Quadrangle
     | n -> `Other n
+
+let solve_single_facet file p =
+  match classify p with
+  | `OriginSquare ->
+    eprintfn "single_facet %s" file;
+    {src = Array.of_list Otypes.orig; facets = [[0;1;2;3]]; dst = Array.of_list @@ List.hd p.Problem.shape}
+  | _ -> failwith "unfitting shape :("
 
 let solve_origin_tri file problem =
   match classify problem with
