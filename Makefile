@@ -64,4 +64,7 @@ redo:
 
 .PHONY: new
 new:
-	$(MAKE) -B $(sort $(filter-out $(all_perfect_out) $(wildcard data/*.out), $(all_out)))
+	$(MAKE) -B solve $(sort $(filter-out $(all_perfect_out) $(wildcard data/*.out), $(all_out)))
+
+.PHONY: solve
+solve:
