@@ -5,6 +5,7 @@
   "main": "rest.js",
   "dependencies": {
     "bluebird": "^3.4.1",
+    "console.table": "^0.7.0",
     "node-rest-client": "^2.0.1",
     "request": "^2.74.0",
     "request-promise": "^4.1.0",
