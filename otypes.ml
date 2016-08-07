@@ -72,6 +72,8 @@ let sqr x = mul x x
 let eq x y = let x,y = norm x y in x.a = y.a
 let is_zero x = x.a = Z.zero
 
+let to_float {a;b} = Z.to_float a /. Z.to_float b
+
 let compare a b = let (a,b) = norm (simplify a) (simplify b) in Z.sign @@ Z.sub a.a b.a
 let gt a b = compare a b > 0
 let lt a b = compare a b < 0
@@ -131,6 +133,11 @@ let eq a b = R.eq a.x b.x && R.eq a.y b.y
 let one = {x=R.one;y=R.one}
 let zero = {x=R.zero;y=R.zero}
 let pi = 4.0 *. atan 1.0
+let angle a b = atan2 (R.to_float @@ cross a b) (R.to_float @@ dot a b)
+let compare a b =
+  match R.compare (dot a a) (dot b b) with
+  | 0 -> compare (angle a b) 0.
+  | n -> n
 let rotate center angle pt =
   let angle = angle *. pi /. 180. in
 (*   let scale = 1_000_000_000 in *)
@@ -143,6 +150,8 @@ let rotate center angle pt =
   let r = R.Infix.{x = R.simplify ((m.x * cos) - (m.y * sin)); y = R.simplify ((m.x * sin) + (m.y * cos))} in (* rotate *)
   {x = R.add r.x center.x; y = R.add r.y center.y}
 end
+
+module Points = Set.Make(Pt)
 
 module Poly = struct
 type t = Pt.t list
