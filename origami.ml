@@ -22,14 +22,15 @@ let () =
     let output = Option.default !last !output in
     eprintfn "output to %s" output;
     Render.render ?p:!p ?s:!s output
-  | "draw"::n::[] ->
+  | "draw"::ns ->
+    ns |> List.iter (fun n ->
     let p = sprintf "data/%s.in" n in
     let p = if Sys.file_exists p then Some (Problem.input p) else None in
     let s = sprintf "data/%s.out" n in
     let s = if Sys.file_exists s then Some (Solution.input s) else None in
     let out = sprintf "data/%s.png" n in
     eprintfn "output to %s" out;
-    Render.render ?p ?s out
+    Render.render ?p ?s out)
   | "bb"::file::[] ->
     let p = Problem.input file in
     let (lo,hi) = Ops.bounding_box p.shape in
