@@ -133,7 +133,8 @@ let eq a b = R.eq a.x b.x && R.eq a.y b.y
 let one = {x=R.one;y=R.one}
 let zero = {x=R.zero;y=R.zero}
 let pi = 4.0 *. atan 1.0
-let angle a b = atan2 (R.to_float @@ cross a b) (R.to_float @@ dot a b)
+let twopi = 2. *. pi
+let angle a b = let f = atan2 (R.to_float @@ cross a b) (R.to_float @@ dot a b) in if f < 0. then twopi +. f else f
 let compare a b =
   match R.compare (dot a a) (dot b b) with
   | 0 -> compare (angle a one) (angle b one)
