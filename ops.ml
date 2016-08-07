@@ -259,18 +259,19 @@ let get_polygons start (p1,p2 as edge) overt =
       | [] -> assert false
       | (pt::overt) ->
       if started then
-        if Line.which_side edge pt = Right then
-          let npt = mirror edge pt in
-          `Top npt,overt
-        else
+        match Line.which_side edge pt with
+        | Right ->
+          `Top (mirror edge pt),overt
+        | Left ->
           `Bot pt, overt
+        | On -> `No, overt
       else
         `No, overt@[pt]
     in
     (match get_next (i > start) overt with
      | `Top p,[] -> top := p2::p::!top; bot:= p1::!bot;
      | `Bot p,[] -> bot := p1::p::!bot; top:= p2::!top;
-     | _,[] -> ()
+     | `No,[] -> top:= p2::!top; bot:= p1::!bot;
      | `Top p, ovt -> top := p::!top; loop (i+1) ovt
      | `Bot p, ovt -> bot := p::!bot; loop (i+1) ovt
      | `No, ovt -> loop (i+1) ovt);
@@ -305,52 +306,63 @@ let v_idx = ref 0
 let update_vertex (i,p) = (* oh the uglyness *)
   Hashtbl.replace idx_pt_last i p
 
-let store_vertex p  =
+let queue = ref []
+let enqueue i p =
+  queue := (i,p)::!queue
+
+let flush_queue () =
+  List.iter (fun (i,p) ->
+    Hashtbl.add idx_pt i p;
+    Hashtbl.add pt_idx p i;
+    update_vertex (i,p)) !queue;
+  queue := []
+
+let store_vertex p =
   match Hashtbl.find_option pt_idx p with
   | Some i -> (i, p)
   | None ->
     let cidx = !v_idx in
-    Hashtbl.add idx_pt cidx p;
-    Hashtbl.add pt_idx p cidx;
-    update_vertex (cidx,p);
+    enqueue cidx p;
     incr v_idx;
     (cidx,p)
 
 (* let pt_idx = Hashtbl.create 10 *)
 let polygons = ref [(List.map store_vertex orig)]
+let () = flush_queue ()
 
-let get_polygons_indexed start (p1,p2 as edge) overt =
-  let p1 = store_vertex p1 in
-  let p2 = store_vertex p2 in
+let get_polygons_indexed start (p1,p2) overt =
+  let edge = (snd p1, snd p2) in
   let top = ref [p1] in
   let bot = ref [p2] in
   let rec loop i overt =
-    (* Printf.printf "walking: %d on %s\n top: %s\n bot: %s\n" i (Poly.show overt) (Poly.show !top) (Poly.show !bot); *)
+    Printf.printf "walking: %d on %s\n top: %s\n bot: %s\n" i (Poly.show (List.map snd overt)) (Poly.show (List.map snd !top)) (Poly.show (List.map snd !bot));
     let get_next started l =
       match l with
       | [] -> assert false
       | ((pid,ptc as pt)::overt) ->
       if started then
-        if Line.which_side edge ptc = Right then
+        match Line.which_side edge ptc with
+        | Right ->
           let npt = mirror edge ptc in
           update_vertex (pid,npt);
           `Top (pid,npt),overt
-        else
+        | Left ->
           `Bot pt, overt
+        | On -> `No, overt
       else
         `No, overt@[pt]
     in
     (match get_next (i > start) overt with
      | `Top p,[] -> top := p2::p::!top; bot:= p1::!bot;
      | `Bot p,[] -> bot := p1::p::!bot; top:= p2::!top;
-     | _,[] -> ()
+     | `No,[] -> top:= p2::!top; bot:= p1::!bot;
      | `Top p, ovt -> top := p::!top; loop (i+1) ovt
      | `Bot p, ovt -> bot := p::!bot; loop (i+1) ovt
      | `No, ovt -> loop (i+1) ovt);
   in loop 0 overt;
      !top, (List.rev !bot)
 
-let find_start_indexed nv1 overt =
+let find_start_indexed (_,nv1) overt =
   let rec loop lst i =
     match lst with
     | [] -> failwith "not on edge!"
@@ -381,13 +393,21 @@ let intersect_poly poly (p1,_ as edge) =
   snd (List.first vtcls), snd (List.last vtcls)
 
 let update_edges edge =
-  let new_polygons = List.fold_left begin fun a poly ->
-    let (ps,_ as e) = intersect_poly poly edge in (* vertex on edge? *)
-    let s = find_start_indexed ps poly in
-    (*edge not indexed until now*)
-    let top, bot = get_polygons_indexed s e poly in
-    top::bot::a
+  let edges_polys = List.fold_left begin fun a poly ->
+    let p1,p2 = intersect_poly poly edge in (* vertex on edge? *)
+    let p1 = store_vertex p1 in
+    let p2 = store_vertex p2 in
+    ((p1,p2),poly)::a
   end [] !polygons
+  in
+  (*al points determined can init*)
+  flush_queue();
+  let new_polygons = List.fold_left begin fun a ((p1,p2),poly) ->
+    let s = find_start_indexed p1 poly in
+    let top, bot = get_polygons_indexed s (p1,p2) poly in
+    Printf.printf "TOPBOT: \n top: %s\n bot: %s\n" (Poly.show (List.map snd top)) (Poly.show (List.map snd bot));
+    top::bot::a
+  end [] edges_polys
   in
   polygons := new_polygons
 
@@ -402,7 +422,7 @@ let build_solution () =
     |> List.sort ~cmp:(fun (i1,_) (i2,_) -> compare i1 i2)
     |> List.map snd
     |> Array.of_list in
-  let facets = List.map (fun p -> (List.map fst p)) !polygons in
+  let facets = List.map (fun p -> List.map fst p |> List.unique) !polygons in
   {src; dst; facets}
 
 (* indexed polygons end -----------------------------------------------*)
