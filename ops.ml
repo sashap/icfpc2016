@@ -179,6 +179,7 @@ let intersect_edges p1 p2 =
       | None -> ()
       | Some p ->
         ok := true;
+(*         if not (Line.is_end e p || Line.is_end c p) then tuck all_inter p; *)
         tuck points p;
         e2 := (fst c, p) :: (p, snd c) :: List.filter (fun c' -> c <> c') !e2
     end;
@@ -188,11 +189,11 @@ let intersect_edges p1 p2 =
       let orig = fst e in
       let l = l |> List.map (fun x -> Line.length2 (orig,x), x) |> List.sort ~cmp:(fun a b -> R.compare (fst a) (fst b)) |> List.map snd in
       let (edges,last) = Poly.connect (orig :: l) in
-     tuck e1 (last, snd e);
+      tuck e1 (last, snd e);
       List.iter (tuck e1) edges
   end;
   match !ok with
-  | true -> `Edges (!e1 @ !e2)
+  | true -> `Edges (List.filter (fun x -> not @@ Line.is_zero x) (!e1 @ !e2))
   | false ->
   let check l = assert (List.fold_left (fun acc x -> acc = x) (List.hd l) l); List.hd l in
   let p2_in_p1 = check @@ List.map (fun p -> is_inside p p1) p2 in
@@ -206,6 +207,11 @@ let intersect_edges p1 p2 =
 let find_max cmp = function
 | [] -> assert false
 | x::xs -> List.fold_left (fun acc x -> if cmp x acc > 0 then x else acc) x xs
+
+(** return points in [poly] that are not in [shape] *)
+let new_points shape poly =
+  let old_points = List.fold_left Points.union Points.empty (List.map Points.of_list shape) in
+  List.fold_left (fun acc p -> if Points.mem p old_points then acc else Points.add p acc) Points.empty poly
 
 let union p1 p2 =
   match intersect_edges p1 p2 with
@@ -223,7 +229,7 @@ let union p1 p2 =
     let select p =
       tuck poly p;
       let next = from p in
-      e := List.filter (fun (a,b) -> not (Pt.eq a p || Pt.eq b p)) !e;
+      e := List.filter (fun l -> not @@ Line.is_end l p) !e;
 (*       printfn "picked %s remain %d next %s" (Pt.show p) (List.length !e) (String.concat " " @@ List.map Pt.show next); *)
       next
     in
