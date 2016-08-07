@@ -296,13 +296,53 @@ let find_start nv1 overt =
   in
   loop overt 0
 
-(* indexed polygons here -----------------------------------------------*)
-(* oh the uglyness *)
+module Fold = struct
+
+let find_start_indexed (_,nv1) overt =
+  let rec loop lst i =
+    match lst with
+    | [] -> failwith "not on edge!"
+    | (_,v1)::[] ->
+      let (_,v2) = List.hd overt in
+      if Line.is_on_line (v1,v2) nv1 then
+        i
+      else
+        loop [] (i+1)
+    | (_,v1)::((_,v2)::_ as tl) ->
+      if Line.is_on_line (v1,v2) nv1 then
+        i
+      else
+        loop tl (i+1)
+  in
+  loop overt 0
+
+let rec fall_back hist pt =
+  match hist with
+  | [] -> pt
+  | e::tl -> fall_back tl (mirror e pt)
+
+let intersect_poly poly (p1,p2) =
+  let vtc = ref [] in
+  let _ = List.fold_left (fun (_pid,prev) (cid,cur) ->
+    match Line.get_intersect (p1,p2) (prev,cur) with
+    | None -> (cid,cur)
+    | Some p -> vtc := p::!vtc; (cid,cur)) (List.last poly) poly
+  in
+  let vtc = List.unique ~cmp:Pt.eq !vtc in
+  let vtcl = List.map (fun pt -> Line.length2 (p1,pt), pt) vtc in
+  let vtcls = List.sort ~cmp:(fun (l1,_) (l2,_) -> R.compare l1 l2) vtcl in
+  let len = List.length vtcls in
+  if len = 0 then
+    `No
+  else if len = 1 then
+    `One
+  else
+    `Two (snd (List.first vtcls), snd (List.last vtcls))
+
 let idx_pt = Hashtbl.create 10
 let pt_idx = Hashtbl.create 10
 let idx_pt_last = Hashtbl.create 10
 let v_idx = ref 0
-
 let update_vertex (i,p) =
   Hashtbl.replace idx_pt_last i p
 
@@ -317,7 +357,11 @@ let store_vertex p =
     incr v_idx;
     cidx
 
-let polygons = ref [[],(List.map (fun p-> let pn = (store_vertex p),p in update_vertex pn; pn) orig)] (*[history * polygon]*)
+let init_poly poly =
+  [],(List.map (fun p-> let pn = (store_vertex p),p in update_vertex pn; pn) poly)
+
+let polygons = ref [init_poly orig] (*[history * polygon]*)
+
 
 let get_polygons_indexed start (p1,p2) overt =
   let edge = (snd p1, snd p2) in
@@ -373,47 +417,6 @@ let get_polygons_indexed start (p1,p2) overt =
     in loop 0 overt;);
     !top, (List.rev !bot)
 
-let find_start_indexed (_,nv1) overt =
-  let rec loop lst i =
-    match lst with
-    | [] -> failwith "not on edge!"
-    | (_,v1)::[] ->
-      let (_,v2) = List.hd overt in
-      if Line.is_on_line (v1,v2) nv1 then
-        i
-      else
-        loop [] (i+1)
-    | (_,v1)::((_,v2)::_ as tl) ->
-      if Line.is_on_line (v1,v2) nv1 then
-        i
-      else
-        loop tl (i+1)
-  in
-  loop overt 0
-
-let rec fall_back hist pt =
-  match hist with
-  | [] -> pt
-  | e::tl -> fall_back tl (mirror e pt)
-
-let intersect_poly poly (p1,p2) =
-  let vtc = ref [] in
-  let _ = List.fold_left (fun (_pid,prev) (cid,cur) ->
-    match Line.get_intersect (p1,p2) (prev,cur) with
-    | None -> (cid,cur)
-    | Some p -> vtc := p::!vtc; (cid,cur)) (List.last poly) poly
-  in
-  let vtc = List.unique ~cmp:Pt.eq !vtc in
-  let vtcl = List.map (fun pt -> Line.length2 (p1,pt), pt) vtc in
-  let vtcls = List.sort ~cmp:(fun (l1,_) (l2,_) -> R.compare l1 l2) vtcl in
-  let len = List.length vtcls in
-  if len = 0 then
-    `No
-  else if len = 1 then
-    `One
-  else
-    `Two (snd (List.first vtcls), snd (List.last vtcls))
-
 let update_edges (pi1,pi2 as edge) =
   let new_polygons = List.fold_left begin fun a (hist,poly) ->
     let start,(p1,p2) =
@@ -455,3 +458,5 @@ let do_fold outer_vertices (p1,_p2 as edge) = (* fold leftward *)
   let start = find_start p1 outer_vertices in
   let top_poly, bot_poly = get_polygons start edge outer_vertices in
   union top_poly bot_poly
+
+end

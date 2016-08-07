@@ -13,12 +13,12 @@ let gen_folds () =
   while !flag do
     printf "Edge to fold over : ";
     let edge = Line.of_string (read_line ()) in
-    poly := Ops.do_fold !poly edge;
+    poly := Ops.Fold.do_fold !poly edge;
     Render.render_poly !poly "folds.png";
     printf "continue? [1/0] : ";
     flag := (read_int ()) = 1
   done;
-  print_string @@ (Solution.show @@ Ops.build_solution ())
+  print_string @@ (Solution.show @@ Ops.Fold.build_solution ())
 
 let () =
   Random.self_init ();
