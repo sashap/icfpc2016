@@ -16,7 +16,7 @@ var request = require('request-promise').defaults({
   baseUrl: 'http://2016sv.icfpcontest.org/api/'
 });
 
-var teamId = "103";
+var myTeamId = "103";
 
 var args = {
   headers: headers 
@@ -26,7 +26,7 @@ var options = {
   url: 'snapshot/list',
 };
 
-var minDelay = 1500;
+var minDelay = 1000;
 
 var maxNewProblemsToGet = 50;
 
@@ -38,23 +38,6 @@ if (!fs.existsSync(problemsDir)){
   console.log("Creating ", problemsDir, " directory.");
   fs.mkdirSync(problemsDir);
 }
-
-var lastTimepoint = Date.now();
-
-
-// Get list of team problems
-var getTeamProblems = function(problems){
-  return problems.filter(function(problem){
-    problem.owner === teamId;
-  });
-};
-
-// Perform analysis on problem effectiveness
-var analyzeProblemStrength = function(problems){
-
-  console.log("Following are very strong: ", problems);
-
-};
 
 // Get all latest problems available
 var getAllProblems = function(){
@@ -104,21 +87,16 @@ var downloadNewProblems = function(allProblems, maxNewProblemsToGet){
     function(problem){
 
       var targetFile = problemsDir + "/" + problem.problem_id + problemsExt;
-      var myDelay = 0;
-      lastTimepoint = Date.now();
       return request({ url: 'blob/' + problem.problem_spec_hash })
         .then(function(data){
-
+        
           console.log("Saving problem to ", targetFile);      
           console.log("-------------------------------------------");
           console.log(data);
           console.log("-------------------------------------------");
           fs.writeFile(targetFile, data);
-          myDelay = minDelay - (Date.now() - lastTimepoint);
-          lastTimepoint = Date.now();
-          console.log("Waiting for API to cool down:", myDelay);
         })
-        .delay(myDelay);
+        .delay(minDelay);
     }, 
     // Using Bluebird concurrency
     {concurrency: 1}
@@ -126,14 +104,81 @@ var downloadNewProblems = function(allProblems, maxNewProblemsToGet){
 
 };
 
+// Get list of team problems
+var filterTeamProblems = function(problems, teamId){
+  return problems.filter(function(problem){
+    return problem.owner === ''+teamId;
+  });
+};
+
+// Perform analysis on problem effectiveness
+var analyzeProblemStrength = function(problems){
+
+  console.log("Running analysis on ", problems.length, "problems");
+
+  return problems.map(function(problem){
+
+    // s - the size of the solution that produced the problem
+    // n - the number of the teams that submitted a perfect solution, plus 1. 
+    // The problem-setting team receives (5000 - s) / n points
+    // Each team that submitted a perfect solution gets s / n points. 
+    // 
+    // The scores for the teams with imperfect solutions are calculated such that 
+    // the total points earned by all the imperfect solution teams is s / n, 
+    // and each team's share is proportional to the resemblance of its solution.
+
+    var totalSolutions = problem.ranking.length;
+    var perfectSolutions = 0;
+    var allResemblances = 0;
+    var partialResemblanceSum = 0;
+    var allResemblanceSum = 0;
+    problem.ranking.forEach(function(solution){
+      if(solution.resemblance >= 1.0) {
+        perfectSolutions++;
+      } else {
+        partialResemblanceSum += solution.resemblance;
+      }
+      allResemblanceSum+= solution.resemblance;
+    });
+    var partialSolutions = totalSolutions - perfectSolutions;
+    var s = problem.solution_size;
+    var n = perfectSolutions + 1;
+
+    problem.strength = {
+      s: s,
+      n: n,
+      partialSolutions: partialSolutions,
+      perfectSolutions: perfectSolutions,
+      teamScore: (5000 - problem.solution_size) / n,
+      solveRatio: (perfectSolutions / totalSolutions) || 0,
+      averagePartialResemblance: (partialResemblanceSum / partialSolutions) || 0,
+      averageResemblance: (allResemblanceSum / totalSolutions) || 0,
+    };
+
+    return problem;
+
+  });
+
+};
 
 
-// var teamProblems = getTeamProblems(data.problems);
-// analyzeProblemStrength(teamProblems);
+// getAllProblems().then(function(problems){
 
+//   // Download and save new problems
+//   downloadNewProblems(problems);
 
-getAllProblems()
-.then(function(problems){
-  downloadNewProblems(problems);
-})
+// });
 
+getAllProblems().then(function(problems){
+    
+  var teamProblems = filterTeamProblems(problems, myTeamId);
+  var analyzedProblems = analyzeProblemStrength(teamProblems);
+
+  console.log("Problems Analysis");
+  analyzedProblems.forEach(function(problem){
+    console.log("Problem id: ", problem.problem_id);
+    console.log("-------------------------------------");
+    console.log(problem.strength);
+  });
+
+});
