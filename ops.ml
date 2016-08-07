@@ -127,6 +127,16 @@ let best_box file shape =
   !best
 
 let classify p =
+  let which_rect l1 l2 =
+    let rs n = R.zmake n 1 in
+    let ri n = R.zmake 1 n in
+    let r = R.div l1 l2 in
+    if R.eq r (rs 4) || R.eq r (ri 4) then `Rect2 else
+    if R.eq r (rs 8) || R.eq r (ri 8) then `Rect4 else
+    if R.eq r (rs 16) || R.eq r (ri 16) then `Rect8 else
+    if R.eq r (rs 32) || R.eq r (ri 32) then `Rect16
+    else `OriginQuadrangle2
+  in
   match p.Problem.shape with
   | [] -> `Empty
   | _::_::_ -> `Multi
@@ -159,7 +169,7 @@ let classify p =
         | [c;_], [a;b] ->
           if not @@ R.eq R.zero (Pt.dot (Line.vector (c,a)) (Line.vector (c,b))) then raise Not_found;
           let (v,other) =
-                  if Line.is_end base a then (a,c), b else 
+                  if Line.is_end base a then (a,c), b else
                   if Line.is_end base b then (b,c), a else
                   assert false
           in
@@ -466,7 +476,7 @@ let update_edges (pi1,pi2 as edge) =
         (`Two (find_start_indexed p1 poly),(p1,p2))
     in
     let top, bot = get_polygons_indexed start (p1,p2) poly in
-    Printf.printf "TOPBOT: \n top: %s\n bot: %s\n" (Poly.show (List.map snd top)) (Poly.show (List.map snd bot));
+    (* Printf.printf "TOPBOT: \n top: %s\n bot: %s\n" (Poly.show (List.map snd top)) (Poly.show (List.map snd bot)); *)
     ((snd p1,snd p2)::hist,top)::(hist,bot)::a
   end [] !polygons
   in

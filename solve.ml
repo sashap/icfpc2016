@@ -56,9 +56,22 @@ let origin_car_shape file p =
     }
   | _ -> fail "not car-shape"
 
+let rectangle file problem =
+  match classify problem with
+  | `Rect ->
+    eprintfn "rectangle %s" file;
+    let low = List.fold_left (fun a p -> Pt.lo a p) Pt.zero (List.hd problem.shape) in
+    let high = List.fold_left (fun a p -> Pt.hi a p) Pt.zero (List.hd problem.shape) in
+    let sol,_ = Ops.fold_bb (low,high) in
+    sol
+  | _ -> failwith "not rectangle"
+
+
+
 let auto file p =
   try origin_tri file p with _ ->
   try single_facet file p with _ ->
   try origin_car_shape file p with _ ->
   try best_bb file p with _ ->
+  try rectangle file p with _ ->
   try bb file p with _ -> fail "auto %s failed" file

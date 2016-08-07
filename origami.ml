@@ -15,10 +15,10 @@ let gen_folds () =
     let edge = Line.of_string (read_line ()) in
     poly := Ops.Fold.do_fold !poly edge;
     Render.render_poly !poly "folds.png";
+    print_string @@ (Solution.show @@ Ops.Fold.build_solution ());
     printf "continue? [1/0] : ";
-    flag := (read_int ()) = 1
-  done;
-  print_string @@ (Solution.show @@ Ops.Fold.build_solution ())
+    flag := (read_int ()) = 1;
+  done
 
 let () =
   Random.self_init ();
