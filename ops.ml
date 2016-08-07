@@ -126,6 +126,38 @@ let best_box file shape =
   eprintfn "best_bb [%s]: %g i=%d j=%d" file !r (fst !pos) (snd !pos);
   !best
 
+let find_car_shape edges =
+  match List.filter (fun l -> R.eq (Line.length2 l) (R.div R.one R.(int 4))) edges with
+  | [(a1,a2);(b1,b2)] ->
+    let base = match List.filter (fun l -> R.eq (Line.length2 l) R.one) edges with
+    | [base] -> base
+    | _ -> assert false
+    in
+    let points = [a1;a2;b1;b2] in
+    let count p l = List.filter (Pt.eq p) l |> List.length in
+    let count = List.map (fun p -> count p points, p) points in
+    begin match List.map snd @@ List.filter (fun (c,_) -> c = 2) count,
+                List.map snd @@ List.filter (fun (c,_) -> c = 1) count with
+    | [c;_], [a;b] ->
+      begin match R.eq R.zero (Pt.dot (Line.vector (c,a)) (Line.vector (c,b))) with
+      | false -> None
+      | true ->
+      let (v,other) =
+              if Line.is_end base a then (a,c), b else
+              if Line.is_end base b then (b,c), a else
+              assert false
+      in
+      match R.eq R.zero (Pt.dot (Line.vector v) (Line.vector base)) with
+      | false -> None
+      | true ->
+      let (bb1,bb2) = base in
+      let bbb = if Pt.eq (fst v) bb1 then bb2 else bb1 in
+      Some (bbb,fst v,snd v,other)
+      end
+    | _ -> None
+    end
+  | _ -> None
+
 let classify p =
   let which_rect l1 l2 =
     let rs n = R.zmake n 1 in
@@ -154,34 +186,7 @@ let classify p =
       else if n >= 2 then `OriginQuadrangle2
       else if n = 0 then `Quadrangle
       else
-      let qqq () =
-      match List.filter (fun l -> R.eq (Line.length2 l) (R.div R.one R.(int 4))) edges with
-      | [(a1,a2);(b1,b2)] ->
-        let base = match List.filter (fun l -> R.eq (Line.length2 l) R.one) edges with
-        | [base] -> base
-        | _ -> assert false
-        in
-        let points = [a1;a2;b1;b2] in
-        let count p l = List.filter (Pt.eq p) l |> List.length in
-        let count = List.map (fun p -> count p points, p) points in
-        begin match List.map snd @@ List.filter (fun (c,_) -> c = 2) count,
-                    List.map snd @@ List.filter (fun (c,_) -> c = 1) count with
-        | [c;_], [a;b] ->
-          if not @@ R.eq R.zero (Pt.dot (Line.vector (c,a)) (Line.vector (c,b))) then raise Not_found;
-          let (v,other) =
-                  if Line.is_end base a then (a,c), b else
-                  if Line.is_end base b then (b,c), a else
-                  assert false
-          in
-          if not @@ R.eq R.zero (Pt.dot (Line.vector v) (Line.vector base)) then raise Not_found;
-          let (bb1,bb2) = base in
-          let bbb = if Pt.eq (fst v) bb1 then bb2 else bb1 in
-          `QQQ (bbb,fst v,snd v,other)
-        | _ -> `Quadrangle
-        end
-      | _ -> `Quadrangle
-      in
-      (try qqq ()  with Not_found -> `Quadrangle)
+      begin match find_car_shape edges with Some x -> `CarShape x | None -> `Quadrangle end
     | n -> `Other n
 
 let neighbors' l idx =

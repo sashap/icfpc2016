@@ -63,7 +63,7 @@ let () =
       | `Square -> "square"
       | `OriginQuadrangle2 -> "origin quadrangle2"
       | `OriginQuadrangle1 -> "origin quadrangle1"
-      | `QQQ _ -> "origin car-shape"
+      | `CarShape _ -> "origin car-shape"
       | `Quadrangle -> "quadrangle"
       | `Other n -> sprintf "%d vertices" n
       in

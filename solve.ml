@@ -43,7 +43,7 @@ let origin_tri file problem =
 let origin_car_shape file p =
   let h = R.(div one two) in
   match classify p with
-  | `QQQ (sharp, right, right2, obtuse) ->
+  | `CarShape (sharp, right, right2, obtuse) ->
     eprintfn "car_shape %s" file;
     { src = Array.of_list (orig2@[{x=R.zero;y=h};{x=h;y=R.one};{x=h;y=h}]);
       facets = [
