@@ -84,13 +84,14 @@ let () =
     | "rect" -> Gen.gen1
     | "v" -> Gen.gen_v
     | "t" -> Gen.gen_t
+    | "cross" -> Gen.gen_cross
     | _ -> assert false
     in
     let mirrors = int_of_string mirrors in
     let stripes = int_of_string stripes in
-(*     Render.render ~s:(meth stripes) "test.png"; *)
-(*     print_string @@ Solution.show @@ meth stripes *)
-    print_string @@ Solution.show @@ Gen.random_mirrors mirrors @@ meth stripes
+    let s = Gen.random_mirrors mirrors (meth stripes) in
+    Render.render ~s "test.png";
+    print_string @@ Solution.show s
   | "hello"::[] -> printfn "%s" (Api.get "hello")
   | "get_tasks"::[] -> Api.get_all_tasks ()
   | "submit_s"::[] -> Api.submit_all_solutions ()

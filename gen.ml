@@ -72,3 +72,36 @@ let gen_t n =
   let dst_d = d |> Array.mapi (fun i p -> { p with x = if i mod 2 = 0 then R.zero else w }) in
   let dst = Array.concat [ dst_a; dst_b; dst_c; dst_d ] in
   { src; dst; facets; }
+
+let gen_cross n =
+  let w = R.zmake 1 n in
+  let h = R.div w R.two in
+  let orig = {x=w; y=R.zero} in
+  let s0 = Array.init (n+1) (fun i -> { (Pt.mul orig (R.int i)) with y = R.one }) in
+  let s2 = s0 |> Array.map (fun p -> { p with y = R.(div two (int 3)) }) in
+  let s3 = s0 |> Array.map (fun p -> { p with y = R.(div one (int 3)) }) in
+  let s5 = s0 |> Array.map (fun p -> { p with y = R.zero }) in
+  let s1 = s0 |> Array.mapi (fun i p -> { p with y = ((if i mod 2 = 0 then R.sub else R.add) R.(div (int 5) (int 6)) h) } ) in
+  let s4 = s0 |> Array.mapi (fun i p -> { p with y = ((if i mod 2 = 0 then R.sub else R.add) R.(div one (int 6)) h) } ) in
+  let src = Array.concat [ s0;s1;s2;s3;s4;s5 ] in
+  let facets =
+    List.init n (fun i -> [0*(n+1)+i; 0*(n+1)+i+1; 1*(n+1)+i+1; 1*(n+1)+i]) @
+    List.init n (fun i -> [1*(n+1)+i; 1*(n+1)+i+1; 2*(n+1)+i+1; 2*(n+1)+i]) @
+    List.init n (fun i -> [2*(n+1)+i; 2*(n+1)+i+1; 3*(n+1)+i+1; 3*(n+1)+i]) @
+    List.init n (fun i -> [3*(n+1)+i; 3*(n+1)+i+1; 4*(n+1)+i+1; 4*(n+1)+i]) @
+    List.init n (fun i -> [4*(n+1)+i; 4*(n+1)+i+1; 5*(n+1)+i+1; 5*(n+1)+i])
+  in
+  let d0 = s0 |> Array.mapi (fun i _ -> { x = R.Infix.(R.one / R.int 6 + h);
+    y = (if i mod 2 = 0 then R.add else R.sub) (R.div R.one R.two) h })
+  in
+  let d1 = s1 |> Array.mapi (fun i _ -> { x = if i mod 2 = 0 then R.zero else w;
+    y = (if i mod 2 = 0 then R.add else R.sub) (R.div R.one R.two) h })
+  in
+  let d4 = d1 in
+  let d2 = s2 |> Array.mapi (fun i p -> { p with x = if i mod 2 = 0 then R.zero else w }) in
+  let d3 = s3 |> Array.mapi (fun i p -> { p with x = if i mod 2 = 0 then R.zero else w }) in
+  let d5 = s0 |> Array.mapi (fun i _ -> { x = R.sub R.zero R.Infix.(R.one / R.int 6 - h);
+    y = (if i mod 2 = 0 then R.add else R.sub) (R.div R.one R.two) h })
+  in
+  let dst = Array.concat [ d0; d1; d2; d3; d4; d5 ] in
+  { src; dst; facets; }
