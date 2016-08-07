@@ -129,7 +129,7 @@ let submit_solutions l =
     | true -> eprintfn "skipping %s due to %s" s (block s)
     | false ->
     match Sys.file_exists @@ perfect s with
-    | true -> eprintfn "skipping %s due to %s" s (perfect s)
+    | true -> ()
     | false ->
     let prev_r =
       match Api_j.solution_of_string @@ Std.input_file (result s) with
