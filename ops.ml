@@ -119,7 +119,7 @@ let mult_box (lo,hi) var f =
   in
   offset, Pt.add offset new_bb
 
-let best_box shape =
+let best_box file shape =
   let box = bounding_box shape in
   let calc box = resemble [poly_of_box box] shape in
   let r = ref @@ calc box in
@@ -139,16 +139,16 @@ let best_box shape =
       end;
     done;
   done;
-  eprintfn "best_bb: %g i=%d j=%d" !r (fst !pos) (snd !pos);
+  eprintfn "best_bb %s: %g i=%d j=%d" file !r (fst !pos) (snd !pos);
   !best
 
-let solve_bb shape =
+let solve_bb file shape =
  let (sol,sol_shape) = bounding_box shape |> fold_bb in
- eprintfn "bb: resemblance %g" (try resemble sol_shape shape with _ -> nan);
+ eprintfn "bb %s: %g" file (try resemble sol_shape shape with _ -> nan);
  sol
 
-let solve_best_bb shape =
-  best_box shape |> fold_bb |> fst
+let solve_best_bb file shape =
+  best_box file shape |> fold_bb |> fst
 
 let neighbors' l idx =
   try

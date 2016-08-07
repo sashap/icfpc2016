@@ -43,8 +43,8 @@ let () =
       in
       let solution =
         match meth with
-        | "bb" -> Ops.solve_bb p.shape
-        | "best_bb" -> Ops.solve_best_bb p.shape
+        | "bb" -> Ops.solve_bb file p.shape
+        | "best_bb" -> Ops.solve_best_bb file p.shape
         | _ -> assert false
       in
       save solution
