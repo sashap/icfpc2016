@@ -302,33 +302,36 @@ let idx_pt = Hashtbl.create 10
 let pt_idx = Hashtbl.create 10
 let idx_pt_last = Hashtbl.create 10
 let v_idx = ref 0
+(* type hist *)
 
 let update_vertex (i,p) = (* oh the uglyness *)
   Hashtbl.replace idx_pt_last i p
 
-let queue = ref []
-let enqueue i p =
-  queue := (i,p)::!queue
+(* let queue = ref [] *)
+(* let enqueue i p = *)
+(*   queue := (i,p)::!queue *)
 
-let flush_queue () =
-  List.iter (fun (i,p) ->
-    Hashtbl.add idx_pt i p;
-    Hashtbl.add pt_idx p i;
-    update_vertex (i,p)) !queue;
-  queue := []
+(* let flush_queue () = (\*get rid of it?*\) *)
+(*   List.iter (fun (i,p) -> *)
+(*     Hashtbl.add idx_pt i p; *)
+(*     Hashtbl.add pt_idx p i; *)
+(*     update_vertex (i,p)) !queue; *)
+(*   queue := [] *)
 
 let store_vertex p =
   match Hashtbl.find_option pt_idx p with
-  | Some i -> (i, p)
+  | Some i -> i
   | None ->
     let cidx = !v_idx in
-    enqueue cidx p;
+    (* enqueue cidx p; *)
+    Hashtbl.replace idx_pt cidx p;
+    Hashtbl.replace pt_idx p cidx;
     incr v_idx;
-    (cidx,p)
+    cidx
 
 (* let pt_idx = Hashtbl.create 10 *)
-let polygons = ref [(List.map store_vertex orig)]
-let () = flush_queue ()
+let polygons = ref [[],(List.map (fun p-> let pn = (store_vertex p),p in update_vertex pn; pn) orig)] (*[history * polygon]*)
+(* let () = flush_queue () *)
 
 let get_polygons_indexed start (p1,p2) overt =
   let edge = (snd p1, snd p2) in
@@ -380,6 +383,11 @@ let find_start_indexed (_,nv1) overt =
   in
   loop overt 0
 
+let rec fall_back hist pt =
+  match hist with
+  | [] -> pt
+  | e::tl -> fall_back tl (mirror e pt)
+
 let intersect_poly poly (p1,_ as edge) =
   let vtc = ref [] in
   let _ = List.fold_left (fun (_pid,prev) (cid,cur) ->
@@ -393,20 +401,22 @@ let intersect_poly poly (p1,_ as edge) =
   snd (List.first vtcls), snd (List.last vtcls)
 
 let update_edges edge =
-  let edges_polys = List.fold_left begin fun a poly ->
+  let edges_polys = List.fold_left begin fun a (hist,poly) ->
     let p1,p2 = intersect_poly poly edge in (* vertex on edge? *)
-    let p1 = store_vertex p1 in
-    let p2 = store_vertex p2 in
-    ((p1,p2),poly)::a
+    let p1 = store_vertex (fall_back hist p1), p1 in
+    update_vertex p1;
+    let p2 = store_vertex (fall_back hist p2), p2 in
+    update_vertex p2;
+    ((p1,p2),(hist,poly))::a
   end [] !polygons
   in
   (*al points determined can init*)
-  flush_queue();
-  let new_polygons = List.fold_left begin fun a ((p1,p2),poly) ->
+  (* flush_queue(); *)
+  let new_polygons = List.fold_left begin fun a ((p1,p2),(hist,poly)) ->
     let s = find_start_indexed p1 poly in
     let top, bot = get_polygons_indexed s (p1,p2) poly in
     Printf.printf "TOPBOT: \n top: %s\n bot: %s\n" (Poly.show (List.map snd top)) (Poly.show (List.map snd bot));
-    top::bot::a
+    ((snd p1,snd p2)::hist,top)::(hist,bot)::a
   end [] edges_polys
   in
   polygons := new_polygons
@@ -422,7 +432,7 @@ let build_solution () =
     |> List.sort ~cmp:(fun (i1,_) (i2,_) -> compare i1 i2)
     |> List.map snd
     |> Array.of_list in
-  let facets = List.map (fun p -> List.map fst p |> List.unique) !polygons in
+  let facets = List.map (fun (_,p) -> List.map fst p) !polygons in
   {src; dst; facets}
 
 (* indexed polygons end -----------------------------------------------*)
