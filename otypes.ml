@@ -203,8 +203,13 @@ let which_side (a,b) pt =
   else
     Left
 
+let get_ord f s = if R.gt f s then f,s else s,f
 let is_on_line (a,b) pt =
-  Pt.eq pt a || Pt.eq pt b || which_side (a,b) pt = On
+  let open R in
+  Pt.eq pt a || Pt.eq pt b ||
+    (let xg,xs = get_ord a.x b.x in
+     let yg,ys = get_ord a.y b.y in
+     which_side (a,b) pt = On && (le pt.x xg) && (ge pt.x xs) && (le pt.y yg) && (ge pt.y ys))
 
 let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
   let open R in
@@ -215,7 +220,6 @@ let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
     let c = (mul k a.x) + (mul n a.y) in
     (k,n,c)
   in
-  let get_ord f s = if R.gt f s then f,s else s,f in
   let k1,n1,c1 = get_coefs a1 b1 in
   let k2,n2,c2 = get_coefs a2 b2 in
   match (k1 * n2) - (k2 * n1) with
