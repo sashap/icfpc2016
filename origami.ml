@@ -86,4 +86,5 @@ let () =
     let a = Problem.input a in
     let b = Problem.input b in
     printfn "%g" (Ops.resemble a.shape b.shape)
+  | "blob"::hash::[] -> print_string @@ Api.get_blob hash
   | _ -> fail "wat"
