@@ -14,7 +14,7 @@ var Promise = require("bluebird");
 // Arguments processing
 var argv = require('yargs')
   .usage('Usage: $0 <command> [options]')
-  .example('$0 stats', 'run analysis of our submitted problems')
+  .example('$0 stats --desc --full --sort-key teamScore', 'run analysis of our submitted problems and sort results by team score in descending order')
   .demand(1)
   .command('download', 'download new problems into data directory')
   .command('stats', 'run analysis of our submitted problems')
@@ -50,7 +50,7 @@ var argv = require('yargs')
     describe: 'Default sort key',
     default: 'teamScore',
   })
-  .option('sort-desc', {
+  .option('desc', {
     default: false,
     type: 'boolean',
     describe: 'Sort in descending order',
@@ -311,7 +311,7 @@ switch(argv._[0]) {
     getAllProblems().then(function(problems){
         
       var teamProblems = filterTeamProblems(problems, myTeamId);
-      var analyzedProblems = analyzeProblemStrength(teamProblems, argv.sortKey, argv.sortDesc, argv.fullStats);
+      var analyzedProblems = analyzeProblemStrength(teamProblems, argv.sortKey, argv.desc, argv.fullStats);
 
 
       INFO("Problems Analysis for team ", myTeamId);
