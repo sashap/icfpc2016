@@ -53,6 +53,10 @@ var argv = require('yargs')
     default: true,
     describe: 'Show statistics in table view',
   })
+  .option('rounded', {
+    default: 2,
+    describe: 'Show numbers rounded to N decimal places',
+  })
   .count('v')
   .alias('v', 'verbose')
   .help('h')
@@ -221,19 +225,19 @@ var analyzeProblemStrength = function(problems, orderKey, orderDesc, fullStats){
 
     var result = {
       id: problem.problem_id,
-      teamScore: teamScore,
+      teamScore: teamScore.toFixed(argv.rounded),
       perfectSolutions: perfectSolutions,
       partialSolutions: partialSolutions,
     };
 
     if (fullStats) {
-      result.hash = problem.problem_spec_hash;
-      result.perfectSolutionScore = pefectSolutionScore;
-      result.solveRatio = (perfectSolutions / totalSolutions) || 0;
-      result.averagePartialResemblance = (partialResemblanceSum / partialSolutions) || 0;
-      result.averageResemblance = (allResemblanceSum / totalSolutions) || 0;
+      result.perfectSolutionScore = pefectSolutionScore.toFixed(argv.rounded);
+      result.solveRatio = ((perfectSolutions / totalSolutions) || 0).toFixed(argv.rounded);
+      result.averagePartialResemblance = ((partialResemblanceSum / partialSolutions) || 0).toFixed(argv.rounded);
+      result.averageResemblance = ((allResemblanceSum / totalSolutions) || 0).toFixed(argv.rounded);
       result.s = s;
       result.n = n;
+      result.hash = problem.problem_spec_hash;
     }
     return result;
 
