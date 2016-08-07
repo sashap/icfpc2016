@@ -50,3 +50,25 @@ let gen_v n =
   let dst_c = c |> Array.mapi (fun i p -> { p with x = if i mod 2 = 0 then R.zero else w }) in
   let dst = Array.concat [ dst_a; dst_b; dst_c ] in
   { src; dst; facets; }
+
+let gen_t n =
+  let w = R.zmake 1 n in
+  let orig = {x=w; y=R.zero} in
+  let a = Array.init (n+1) (fun i -> Pt.mul orig (R.int i)) in
+  let b = a |> Array.map (fun p -> { p with y = R.one }) in
+  let c = a |> Array.mapi (fun i p -> { p with y = R.div ((if i mod 2 = 0 then R.add else R.sub) R.one (R.mul w R.two)) (R.int 4) } ) in
+  let d = a |> Array.map (fun p -> { p with y = R.div R.one R.two }) in
+  let src = Array.concat [ a; b; c; d;] in
+  let facets =
+    List.init n (fun i -> [0*(n+1)+i; 0*(n+1)+i+1; 2*(n+1)+i+1; 2*(n+1)+i]) @
+    List.init n (fun i -> [2*(n+1)+i; 2*(n+1)+i+1; 3*(n+1)+i+1; 3*(n+1)+i]) @
+    List.init n (fun i -> [1*(n+1)+i; 1*(n+1)+i+1; 3*(n+1)+i+1; 3*(n+1)+i])
+  in
+  let dst_a = a |> Array.mapi (fun i _ -> { x = R.Infix.((R.one + (R.mul w R.two)) / (R.int 4));
+    y = R.div ((if i mod 2 = 0 then R.add else R.sub) R.one (R.mul w R.two)) (R.int 4) } )
+  in
+  let dst_b = a |> Array.mapi (fun i _ -> Pt.mul orig (R.int (i mod 2))) in
+  let dst_c = c |> Array.mapi (fun i p -> { p with x = if i mod 2 = 0 then R.zero else w }) in
+  let dst_d = d |> Array.mapi (fun i p -> { p with x = if i mod 2 = 0 then R.zero else w }) in
+  let dst = Array.concat [ dst_a; dst_b; dst_c; dst_d ] in
+  { src; dst; facets; }

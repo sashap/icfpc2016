@@ -9,11 +9,12 @@ let save_solution n x = Std.output_file ~filename:(sprintf "data/%d.out" n) ~tex
 
 let gen_folds () =
   let flag = ref true in
+  let poly = ref orig in
   while !flag do
     printf "Edge to fold over : ";
     let edge = Line.of_string (read_line ()) in
-    let outer = Ops.do_fold orig edge in
-    Render.render_poly outer "folds.png";
+    poly := Ops.do_fold !poly edge;
+    Render.render_poly !poly "folds.png";
     printf "continue? [1/0] : ";
     flag := (read_int ()) = 1
   done;
@@ -78,14 +79,18 @@ let () =
     let line = Pt.of_string a, Pt.of_string b in
     let sol = Solution.input file in
     print_string @@ Solution.show {sol with dst = Array.map (Ops.mirror line) sol.dst}
-  | "gen"::meth::[] ->
+  | "gen"::meth::mirrors::stripes::[] ->
     let meth = match meth with
     | "rect" -> Gen.gen1
     | "v" -> Gen.gen_v
+    | "t" -> Gen.gen_t
     | _ -> assert false
     in
-(*     print_string @@ Solution.show @@ meth 5 *)
-    print_string @@ Solution.show @@ Gen.random_mirrors 3 @@ meth (5 + Random.int 20)
+    let mirrors = int_of_string mirrors in
+    let stripes = int_of_string stripes in
+(*     Render.render ~s:(meth stripes) "test.png"; *)
+(*     print_string @@ Solution.show @@ meth stripes *)
+    print_string @@ Solution.show @@ Gen.random_mirrors mirrors @@ meth stripes
   | "hello"::[] -> printfn "%s" (Api.get "hello")
   | "get_tasks"::[] -> Api.get_all_tasks ()
   | "submit_s"::[] -> Api.submit_all_solutions ()
