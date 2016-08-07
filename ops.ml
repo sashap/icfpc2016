@@ -347,16 +347,37 @@ let intersect_edges p1 p2 =
   | false, false -> assert false (* disjoint *)
   | true, true -> assert false (* impossible *)
 
+let find_max cmp = function
+| [] -> assert false
+| x::xs -> List.fold_left (fun acc x -> if cmp x acc > 0 then x else acc) x xs
+
 let union p1 p2 =
   match intersect_edges p1 p2 with
   | `Outer p -> p
   | `Edges e ->
-    let points = Points.elements @@ List.fold_left (fun acc (a,b) -> Points.add b (Points.add a acc)) Points.empty e in
     let (lo,_) = bounding_box @@ List.map (fun (a,b) -> [a;b]) e in
     let (start,_) =
+      let points = Points.elements @@ List.fold_left (fun acc (a,b) -> Points.add b (Points.add a acc)) Points.empty e in
       List.fold_left (fun (_,m as acc) p' -> let mp' = Pt.sub p' lo in if Pt.compare mp' m < 0 then p',mp' else acc)
         (List.hd points, Pt.sub (List.hd points) lo) points
     in
-    printfn "start %s" (Pt.show start);
-    points
-
+    let poly = ref [] in
+    let e = ref e in
+    let from p = !e |> List.filter_map (fun (a,b) -> if Pt.eq a p then Some b else if Pt.eq b p then Some a else None) in
+    let select p =
+      tuck poly p;
+      let next = from p in
+      e := List.filter (fun (a,b) -> not (Pt.eq a p || Pt.eq b p)) !e;
+(*       printfn "picked %s remain %d next %s" (Pt.show p) (List.length !e) (String.concat " " @@ List.map Pt.show next); *)
+      next
+    in
+    let rec loop prev last =
+      match select last with
+      | [] -> !poly
+      | l ->
+        let to_prev = Pt.sub prev last in
+(*         printfn "last %s to_prev %s" (Pt.show last) (Pt.show to_prev); *)
+        let p = find_max (fun a b -> compare (Pt.angle to_prev (Pt.sub a last)) (Pt.angle to_prev (Pt.sub b last))) l in
+        loop last p
+    in
+    loop (Pt.sub lo Pt.one) start

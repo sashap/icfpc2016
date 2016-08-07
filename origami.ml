@@ -83,6 +83,7 @@ let () =
     let a = Problem.input a in
     let b = Problem.input b in
     let p = Ops.union (List.hd a.shape) (List.hd b.shape) in
+    print_endline @@ Poly.show p;
     with_open_out_bin out @@ Render.do_render ~shape:[p]
   | "is_inside"::file::pt::[] ->
     let p = Problem.input file in
