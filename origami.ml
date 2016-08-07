@@ -67,6 +67,7 @@ let () =
         match meth with
         | "bb" -> Ops.solve_bb file p.shape
         | "best_bb" -> Ops.solve_best_bb file p.shape
+        | "single_facet" -> Ops.solve_single_facet file p
         | _ -> assert false
       in
       save solution
