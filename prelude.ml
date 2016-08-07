@@ -13,3 +13,5 @@ let with_open_in_txt name = bracket (open_in name) close_in_noerr
 let with_open_out_txt name = bracket (open_out name) close_out_noerr
 let with_open_in_bin name = bracket (open_in_bin name) close_in_noerr
 let with_open_out_bin name = bracket (open_out_bin name) close_out_noerr
+
+let tuck l x = l := x :: !l

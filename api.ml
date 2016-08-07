@@ -34,8 +34,10 @@ let set_form h args =
 
 let h = lazy (Curl.init ())
 
+exception Http of int * string
+
 let get ?post api =
-  if Unix.gettimeofday () -. !last_run < 1. then sleep 1.;
+  if Unix.gettimeofday () -. !last_run < 1.1 then sleep 1.;
   last_run := Unix.gettimeofday ();
   let open Curl in
   let h = Lazy.force h in
@@ -62,7 +64,7 @@ let get ?post api =
   set_writefunction h (fun s -> Buffer.add_string b s; String.length s);
   match do_perform h with
   | CURLE_OK when Curl.get_httpcode h = 200 -> Buffer.contents b
-  | CURLE_OK -> fail "http %d" (Curl.get_httpcode h)
+  | CURLE_OK -> raise (Http (Curl.get_httpcode h, Buffer.contents b))
   | code -> fail "curl %d : %s" (Curl.errno code) (Curl.strerror code)
 
 let get_blob hash = get ("blob/" ^ hash)
@@ -75,7 +77,7 @@ let get_snapshot () =
   | [] -> assert false
   | { snapshot_hash = hash; _ } :: _ -> get_blob hash
 
-let get_state () =
+let _get_state () =
   let filename = "snapshot.json" in
   let s = match Sys.file_exists filename with
   | false -> let text = get_snapshot () in Std.output_file ~filename ~text; text
@@ -83,24 +85,29 @@ let get_state () =
   in
   Api_j.state_of_string s
 
+let get_state () = Api_j.state_of_string @@ get_snapshot ()
+
 let get_all_tasks () =
   let open Api_j in
   let st = get_state () in
-  st.problems |> List.iter begin fun (p:problem) ->
+  let to_get = st.problems |> List.filter begin fun (p:problem) ->
     let filename = sprintf "data/%d.in" p.problem_id in
-    match Sys.file_exists filename with
-    | true -> ()
-    | false ->
-      eprintfn "getting %s" filename;
+    not @@ Sys.file_exists filename
+  end
+  in
+  to_get |> List.iteri begin fun i (p:problem) ->
+      let filename = sprintf "data/%d.in" p.problem_id in
+      eprintfn "getting %d of %d : %s" i (List.length to_get) filename;
       Std.output_file ~filename ~text:(get_blob p.problem_spec_hash)
   end
 
 let base_ts = 1470441600
+let get_time p = base_ts + 3600 * p
 
 let send ?sol ?prob s =
   let api,task = match sol, prob with
     | Some s , None -> "solution/submit", ("problem_id", s)
-    | None, Some p -> "problem/submit", ("publish_time", sprintf "%d" (base_ts + 3600 * p))
+    | None, Some p -> "problem/submit", ("publish_time", sprintf "%d" (get_time p))
     | _ -> failwith "problem *OR* solution!"
   in
   let post = [ task; "solution_spec", s] in
@@ -118,24 +125,32 @@ let submit_solutions l =
   |> List.filter (fun s -> not @@ Sys.file_exists @@ sent s || different (out s) (sent s))
   |> List.iter begin fun s ->
     let prev_r =
-      match Std.input_file (result s) with
+      match Api_j.solution_of_string @@ Std.input_file (result s) with
       | exception _ -> 0.
-      | s -> (Api_j.solution_of_string s).resemblance
+      | a -> a.resemblance
     in
     let best_r =
       match Std.input_file (best s) with
       | exception _ -> 0.
       | s -> (Api_j.solution_of_string s).resemblance
     in
-    eprintfn "sending %s ..." (out s);
+    eprintf "sending %s ... %!" (out s);
     let sol = Std.input_file @@ out s in
-    let res = send ~sol:s sol in
+    match send ~sol:s sol with
+    | exception Http (error,message) ->
+      eprintfn "HTTP %d %s" error message;
+      if error = 403 then
+      begin
+        Std.output_file ~filename:(result s) ~text:message;
+        Std.output_file ~filename:(sent s) ~text:sol;
+      end
+    | res ->
     Std.output_file ~filename:(result s) ~text:res;
     Std.output_file ~filename:(sent s) ~text:sol;
     let rr = (Api_j.solution_of_string res).resemblance in
     if rr > 0.999999 then Std.output_file ~filename:(perfect s) ~text:sol;
     if rr > best_r then Std.output_file ~filename:(best s) ~text:res;
-    let msg = if best_r > 0. then (if rr > best_r then "IMPROVED " else "") else "new " in
+    let msg = if best_r > 0. then (if rr > best_r then (if rr -. best_r > 0.02 then "IMPROVED " else "improved ") else "") else "new " in
     eprintfn "%sresemblance %g -> %g (prev %g)" msg best_r rr prev_r
   end
 
@@ -156,8 +171,16 @@ let submit_problems () =
     match Std.input_file @@ out s with
     | "" -> ()
     | prob ->
-    eprintfn "sending %s ..." (out s);
-    let res = send ~prob:(int_of_string s) prob in
+    eprintfn "sending %s at %d ..." (out s) (get_time @@ int_of_string s);
+    match send ~prob:(int_of_string s) prob with
+    | exception Http (code,message) ->
+      eprintfn "HTTP %d %s" code message;
+      if code = 403 then
+      begin
+        Std.output_file ~filename:(result s) ~text:message;
+        Std.output_file ~filename:(sent s) ~text:prob;
+      end
+    | res ->
     Std.output_file ~filename:(result s) ~text:res;
     Std.output_file ~filename:(sent s) ~text:prob;
     let res = Api_j.problem_subm_of_string res in
