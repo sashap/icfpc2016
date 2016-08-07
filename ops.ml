@@ -139,16 +139,21 @@ let best_box file shape =
       end;
     done;
   done;
-  eprintfn "best_bb %s: %g i=%d j=%d" file !r (fst !pos) (snd !pos);
+  eprintfn "best_bb [%s]: %g i=%d j=%d" file !r (fst !pos) (snd !pos);
   !best
 
 let solve_bb file shape =
- let (sol,sol_shape) = bounding_box shape |> fold_bb in
- eprintfn "bb %s: %g" file (try resemble sol_shape shape with _ -> nan);
- sol
+  let (sol,sol_shape) = bounding_box shape |> fold_bb in
+  eprintfn "bb [%s] %g" file (try resemble sol_shape shape with _ -> nan);
+  sol
 
 let solve_best_bb file shape =
   best_box file shape |> fold_bb |> fst
+
+let solve_in_box file shape box =
+  let (sol,sol_shape) = fold_bb box in
+  eprintfn "in_box %s [%s]: %g" (show_box box) file (try resemble sol_shape shape with _ -> nan);
+  sol
 
 let neighbors' l idx =
   try

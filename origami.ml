@@ -4,6 +4,9 @@ open Prelude
 open Printf
 open Otypes
 
+let get_problem n = Problem.input (sprintf "data/%d.in" n)
+let save_solution n x = Std.output_file ~filename:(sprintf "data/%d.out" n) ~text:(Solution.show x)
+
 let () =
   Random.self_init ();
   match List.tl @@ Array.to_list Sys.argv with
@@ -35,11 +38,16 @@ let () =
     let p = Problem.input file in
     let (lo,hi) = Ops.bounding_box p.shape in
     printfn "%s %s" (Pt.show lo) (Pt.show hi)
+  | "solve"::"box"::num::a::b::[] ->
+    let n = int_of_string num in
+    let p = get_problem n in
+    let solution = Ops.solve_in_box num p.shape (Pt.of_string a, Pt.of_string b) in
+    save_solution n solution
   | "solve"::meth::files ->
     files |> List.iter begin fun file ->
       let p,save =
         match int_of_string file with
-        | n -> Problem.input (sprintf "data/%d.in" n), (fun x -> Std.output_file ~filename:(sprintf "data/%d.out" n) ~text:(Solution.show x))
+        | n -> get_problem n, save_solution n
         | exception _ -> Problem.input file, (fun x -> print_string @@ Solution.show x)
       in
       let solution =
