@@ -136,7 +136,7 @@ let pi = 4.0 *. atan 1.0
 let angle a b = atan2 (R.to_float @@ cross a b) (R.to_float @@ dot a b)
 let compare a b =
   match R.compare (dot a a) (dot b b) with
-  | 0 -> compare (angle a b) 0.
+  | 0 -> compare (angle a one) (angle b one)
   | n -> n
 let rotate center angle pt =
   let angle = angle *. pi /. 180. in
