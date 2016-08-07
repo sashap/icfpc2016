@@ -5,6 +5,12 @@
 // Sasha Parfenov
 // Peter Yao
 
+require('console.table');
+var glob = require('glob-fs')({ gitignore: true });
+var path = require('path');
+var fs = require("fs");
+var Promise = require("bluebird");
+
 // Arguments processing
 var argv = require('yargs')
   .usage('Usage: $0 <command> [options]')
@@ -26,7 +32,11 @@ var argv = require('yargs')
   })
   .option('data-dir', {
     default: 'data',
-    describe: 'Data directory',
+    describe: 'All downloaded and processed data directory',
+  })
+  .option('problems-dir', {
+    default: 'problems',
+    describe: 'Team problems directory',
   })
   .option('max-problems', {
     default: 1000,
@@ -42,15 +52,19 @@ var argv = require('yargs')
   })
   .option('sort-desc', {
     default: false,
+    type: 'boolean',
     describe: 'Sort in descending order',
   })
   .option('full', {
     alias: 'fullStats',
     default: false,
+    type: 'boolean',
     describe: 'Show full statistics',
   })
-  .option('table-view', {
+  .option('table', {
+    alias: 'tableView',
     default: true,
+    type: 'boolean',
     describe: 'Show statistics in table view',
   })
   .option('rounded', {
@@ -70,10 +84,6 @@ function DEBUG() { VERBOSE_LEVEL >= 2 && console.log.apply(console, arguments); 
 
 DEBUG("Arguments (argv)", argv);
 
-require('console.table');
-
-var fs = require("fs");
-var Promise = require("bluebird");
 
 var headers = {
   'X-API-Key': argv.apiKey,
@@ -193,6 +203,9 @@ var analyzeProblemStrength = function(problems, orderKey, orderDesc, fullStats){
   orderKey = orderKey || "id";
   INFO("Running analysis on ", problems.length, "problems");
 
+  var problemToClassMap = getProblemToClassMap(argv.problemsDir);
+
+
   return problems.map(function(problem){
 
     // s - the size of the solution that produced the problem
@@ -252,6 +265,29 @@ var analyzeProblemStrength = function(problems, orderKey, orderDesc, fullStats){
 
 };
 
+var getProblemToClassMap = function(sourceDir){
+
+  var resultExt = 'result';
+  var classExt = 'class'
+
+  var resultFiles = glob.readdirSync(sourceDir + '/*.' + resultExt);
+
+  console.log("ResultFiles: ", resultFiles);
+
+  var classFile;
+  return resultFiles.map(function(resultFile){
+
+    classFile = path.dirname(resultFile) + '/' +  path.basename(resultFile, resultExt) + classExt;
+
+    console.log("Class file: ", classFile);
+
+
+  });
+
+
+
+};
+
 
 switch(argv._[0]) {
   case "download":
@@ -268,6 +304,7 @@ switch(argv._[0]) {
         
       var teamProblems = filterTeamProblems(problems, myTeamId);
       var analyzedProblems = analyzeProblemStrength(teamProblems, argv.sortKey, argv.sortDesc, argv.fullStats);
+
 
       INFO("Problems Analysis for team ", myTeamId);
       if (argv.tableView) {
