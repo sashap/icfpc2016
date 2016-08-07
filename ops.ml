@@ -418,22 +418,3 @@ let do_fold outer_vertices (p1,_p2 as edge) = (* fold leftward *)
   let start = find_start p1 outer_vertices in
   let top_poly, bot_poly = get_polygons start edge outer_vertices in
   union top_poly bot_poly
-
-let gen_folds () =
-  let open Printf in
-  (* let x0y0, x0y1, x1y1, x1y0 = (\*outer vertexes*\) *)
-  (*   ({x = R.zero; y = R.zero}, *)
-  (*    {x = R.zero; y = R.one}, *)
-  (*    {x = R.one; y = R.one}, *)
-  (*    {x = R.one; y = R.zero}) *)
-  (* in *)
-  (* let rec loop i v = *)
-  let flag = ref true in
-  while !flag do
-    printf "Edge to fold over : ";
-    let edge = Line.of_string (read_line ()) in
-    let _outer = do_fold orig edge in
-    Printf.printf "%s" @@ form_solution ();
-    printf "continue? [1/0] : ";
-    flag := (read_int ()) = 1
-  done;

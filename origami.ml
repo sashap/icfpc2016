@@ -7,6 +7,18 @@ open Otypes
 let get_problem n = Problem.input (sprintf "data/%d.in" n)
 let save_solution n x = Std.output_file ~filename:(sprintf "data/%d.out" n) ~text:(Solution.show x)
 
+let gen_folds () =
+  let flag = ref true in
+  while !flag do
+    printf "Edge to fold over : ";
+    let edge = Line.of_string (read_line ()) in
+    let outer = Ops.do_fold orig edge in
+    Render.render_poly outer "folds.png";
+    printf "continue? [1/0] : ";
+    flag := (read_int ()) = 1
+  done;
+  print_string @@ Ops.form_solution ()
+
 let () =
   Random.self_init ();
   match List.tl @@ Array.to_list Sys.argv with
@@ -104,4 +116,5 @@ let () =
     let b = Problem.input b in
     printfn "%g" (Ops.resemble a.shape b.shape)
   | "blob"::hash::[] -> print_string @@ Api.get_blob hash
+  | "gen_folds"::[] -> gen_folds ()
   | _ -> fail "wat"
