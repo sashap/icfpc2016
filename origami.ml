@@ -4,7 +4,7 @@ open Prelude
 open Printf
 open Otypes
 
-let get_problem n = Problem.input (sprintf "data/%d.in" n)
+let get_problem n = sprintf "data/%d.in" n
 let save_solution n x = Std.output_file ~filename:(sprintf "data/%d.out" n) ~text:(Solution.show x)
 
 let gen_folds () =
@@ -73,24 +73,30 @@ let () =
     printfn "%s %s" (Pt.show lo) (Pt.show hi)
   | "solve"::"box"::num::a::b::[] ->
     let n = int_of_string num in
-    let p = get_problem n in
+    let p = Problem.input @@ get_problem n in
     let solution = Ops.solve_in_box num p.shape (Pt.of_string a, Pt.of_string b) in
     save_solution n solution
   | "solve"::meth::files ->
+    let meth = match meth with
+      | "bb" -> Ops.solve_bb
+      | "best_bb" -> Ops.solve_best_bb
+      | "single_facet" -> Ops.solve_single_facet
+      | "origin_tri" -> Ops.solve_origin_tri
+      | _ -> assert false
+    in
     files |> List.iter begin fun file ->
       let p,save =
         match int_of_string file with
         | n -> get_problem n, save_solution n
-        | exception _ -> Problem.input file, (fun x -> print_string @@ Solution.show x)
+        | exception _ -> file, (fun x -> print_string @@ Solution.show x)
       in
-      let solution =
-        match meth with
-        | "bb" -> Ops.solve_bb file p.shape
-        | "best_bb" -> Ops.solve_best_bb file p.shape
-        | "single_facet" -> Ops.solve_single_facet file p
-        | _ -> assert false
-      in
-      save solution
+      match Sys.file_exists p with
+      | false -> ()
+      | true ->
+      let p = Problem.input p in
+      match meth file p with
+      | exception exn -> eprintfn "failed %s : %s" file (Printexc.to_string exn)
+      | solution -> save solution
     end
   | "rotate"::file::center::angle::[] ->
     let angle = float_of_string angle in

@@ -126,13 +126,14 @@ let best_box file shape =
   eprintfn "best_bb [%s]: %g i=%d j=%d" file !r (fst !pos) (snd !pos);
   !best
 
-let solve_bb file shape =
+let solve_bb file p =
+  let shape = p.Problem.shape in
   let (sol,sol_shape) = bounding_box shape |> fold_bb in
   eprintfn "bb [%s] %g" file (try resemble sol_shape shape with _ -> nan);
   sol
 
-let solve_best_bb file shape =
-  best_box file shape |> fold_bb |> fst
+let solve_best_bb file p =
+  best_box file p.Problem.shape |> fold_bb |> fst
 
 let solve_in_box file shape box =
   let (sol,sol_shape) = fold_bb box in
@@ -166,6 +167,23 @@ let classify p =
       else if n >= 2 then `OriginQuadrangle
       else `Quadrangle
     | n -> `Other n
+
+let solve_origin_tri file problem =
+  match classify problem with
+  | `OriginTriangle ->
+    eprintfn "origin_triangle %s" file;
+    let p = List.hd problem.shape in
+    let edges = Poly.edges p in
+    begin match edges |> List.filter (fun l -> not @@ R.eq (Line.length2 l) R.one) with
+    | [other] ->
+      begin match List.partition (fun p -> not @@ Line.is_end other p) p with
+      | [x],[a;b] ->
+        { src = Array.of_list orig; facets = [[0;2;1];[0;2;3]]; dst = Array.of_list [a;x;b;x]}
+      | _ -> assert false
+      end
+    | _ -> assert false
+    end
+  | _ -> failwith "unfitting shape :("
 
 let neighbors' l idx =
   try
