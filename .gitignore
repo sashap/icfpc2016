@@ -7,3 +7,4 @@ _build
 *.top
 data/*.png
 problems/*.png
+folds.png

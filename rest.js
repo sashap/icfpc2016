@@ -14,10 +14,11 @@ var Promise = require("bluebird");
 // Arguments processing
 var argv = require('yargs')
   .usage('Usage: $0 <command> [options]')
-  .example('$0 stats --desc --full --sort-key teamScore', 'run analysis of our submitted problems and sort results by team score in descending order')
+  .example('$0 solved --desc --full --sort-key teamScore', 'run analysis of our submitted problems and sort results by team score in descending order')
   .demand(1)
   .command('download', 'download new problems into data directory')
-  .command('stats', 'run analysis of our submitted problems')
+  .command('solved', 'run statistics on solved problems')
+  .command('created', 'run statistics on created problems')
   .option('api-url', {
     default: 'http://2016sv.icfpcontest.org/api/',
     describe: 'ICFPC API URL',
@@ -61,11 +62,10 @@ var argv = require('yargs')
     type: 'boolean',
     describe: 'Show full statistics',
   })
-  .option('table', {
-    alias: 'tableView',
-    default: true,
+  .option('json', {
+    default: false,
     type: 'boolean',
-    describe: 'Show statistics in table view',
+    describe: 'Show statistics in JSON format',
   })
   .option('rounded', {
     default: 2,
@@ -212,7 +212,6 @@ var analyzeProblemStrength = function(problems, orderKey, orderDesc, fullStats){
     // n - the number of the teams that submitted a perfect solution, plus 1. 
     // The problem-setting team receives (5000 - s) / n points
     // Each team that submitted a perfect solution gets s / n points. 
-    // 
     // The scores for the teams with imperfect solutions are calculated such that 
     // the total points earned by all the imperfect solution teams is s / n, 
     // and each team's share is proportional to the resemblance of its solution.
@@ -249,6 +248,7 @@ var analyzeProblemStrength = function(problems, orderKey, orderDesc, fullStats){
       result.perfectSolutionScore = pefectSolutionScore.toFixed(argv.rounded);
       result.solveRatio = ((perfectSolutions / totalSolutions) || 0).toFixed(argv.rounded);
       result.averagePartialResemblance = ((partialResemblanceSum / partialSolutions) || 0).toFixed(argv.rounded);
+      result.partialResemblanceSum = partialResemblanceSum;
       result.averageResemblance = ((allResemblanceSum / totalSolutions) || 0).toFixed(argv.rounded);
       result.s = s;
       result.n = n;
@@ -298,6 +298,70 @@ var getProblemToClassMap = function(sourceDir){
 };
 
 
+// Get solution statistics
+var getSolvedProblemsStats = function(problems, orderKey, orderDesc, fullStats) {
+
+  orderKey = orderKey || 'bestResult';
+  var resultExt = 'result';
+  var bestExt = 'best'
+
+  var problemsStats = analyzeProblemStrength(problems, 'id', false, true);
+
+  return problemsStats.map(function(ps){
+
+    var bestResult = 0;
+    var bestFile = path.join(dataDir, ps.id + '.' + bestExt);
+    var resultFile = path.join(dataDir, ps.id + '.' + resultExt);
+    try{
+      if(fs.existsSync(bestFile)){
+        bestResult = JSON.parse(fs.readFileSync(bestFile, "utf-8")).resemblance;
+      } else {
+        bestResult = JSON.parse(fs.readFileSync(resultFile, "utf-8")).resemblance;
+      }
+    } catch(error){
+      DEBUG("Unable to parse ", resultFile, "error:", error);
+    }
+    
+    // Each team that submitted a perfect solution gets s / n points. 
+    // The scores for the teams with imperfect solutions are calculated such that 
+    // the total points earned by all the imperfect solution teams is s / n, 
+    // and each team's share is proportional to the resemblance of its solution.
+    
+    var teamScore = 0;
+    if (bestResult >= 1.0) {
+      teamScore = (ps.s / ps.n) || 0;
+    } else {
+      teamScore = ((ps.s / ps.n) * (bestResult / ps.partialResemblanceSum)) || 0;
+    }
+
+    var result = {
+      id: ps.id,
+      bestResult: bestResult,
+      teamScore: teamScore,
+      perfectSolutions: ps.perfectSolutions,
+      partialSolutions: ps.partialSolutions,
+    }
+
+    if (fullStats){
+      result.solveRatio = ps.solveRatio;
+      result.averagePartialResemblance = ps.averagePartialResemblance;
+      result.averageResemblance = ps.averageResemblance;
+    }
+
+    return result;
+
+  })
+  .sort(function(a,b){
+    if (orderDesc) {
+      return b[orderKey] - a[orderKey]; 
+    } else {
+      return a[orderKey] - b[orderKey];
+    };
+    
+  });  ;
+
+};
+
 switch(argv._[0]) {
   case "download":
 
@@ -307,25 +371,36 @@ switch(argv._[0]) {
     });
 
     break;
-  case "stats":
 
-    getAllProblems().then(function(problems){
-        
+  case "created":
+
+    getAllProblems().then(function(problems){        
       var teamProblems = filterTeamProblems(problems, myTeamId);
       var analyzedProblems = analyzeProblemStrength(teamProblems, argv.sortKey, argv.desc, argv.fullStats);
-
-
-      INFO("Problems Analysis for team ", myTeamId);
-      if (argv.tableView) {
-        console.table(analyzedProblems);  
-      } else {
+      INFO("Problems Created by Team ", myTeamId);
+      if (argv.json) {
         console.log(analyzedProblems);  
-      }
-      
-
+      } else {
+        console.table(analyzedProblems);  
+      }      
     });
 
     break;
+
+  case "solved":
+
+    getAllProblems().then(function(problems){
+      var solvedProblems = getSolvedProblemsStats(problems);
+      INFO("Problems Solved by Team ", myTeamId);
+      if (argv.json) {
+        console.log(solvedProblems);  
+      } else {
+        console.table(solvedProblems);  
+      }
+    });
+
+    break;
+
   default:
     console.log("Option", argv._[0], " not found  See help with --help.");
 
