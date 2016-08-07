@@ -1,4 +1,39 @@
-// REST API for ICFPC 2016
+#!/usr/bin/env node
+
+var argv = require('yargs')
+  .usage('Usage: $0 <command> [options]')
+  .example('$0 stats', 'run analysis of our submitted problems')
+  .demand(1)
+  .command('download', 'download new problems into data directory')
+  .command('stats', 'run analysis of our submitted problems')
+  .option('data-dir', {
+    alias: 'dataDir',
+    default: 'data',
+    describe: 'Data directory',
+  })
+  .option('max-problems', {
+    alias: 'maxProblems',
+    default: 1000,
+    describe: 'Maximum problems to download',
+  })
+  .option('api-delay', {
+    alias: 'apiDelay',
+    default: 1000,
+    describe: 'Minimum amount of delay between API calls',
+  })
+  
+  .count('verbose')
+  .help('h')
+  .alias('h', 'help')
+  .argv;
+ 
+// var VERBOSE_LEVEL = argv.verbose;
+ 
+// function WARN()  { VERBOSE_LEVEL >= 0 && console.log.apply(console, arguments); }
+// function INFO()  { VERBOSE_LEVEL >= 1 && console.log.apply(console, arguments); }
+// function DEBUG() { VERBOSE_LEVEL >= 2 && console.log.apply(console, arguments); }
+ 
+
 
 var fs = require("fs");
 var Promise = require("bluebird");
@@ -26,17 +61,16 @@ var options = {
   url: 'snapshot/list',
 };
 
-var minDelay = 1000;
+var apiDelay = argv.apiDelay;
 
-var maxNewProblemsToGet = 50;
+var maxNewProblemsToGet = argv.maxProblems;
 
-
-var problemsDir = "data";
+var dataDir = argv.dataDir;
 var problemsExt = ".in";
 
-if (!fs.existsSync(problemsDir)){
-  console.log("Creating ", problemsDir, " directory.");
-  fs.mkdirSync(problemsDir);
+if (!fs.existsSync(dataDir)){
+  console.log("Creating ", dataDir, " directory.");
+  fs.mkdirSync(dataDir);
 }
 
 // Get all latest problems available
@@ -54,7 +88,7 @@ var getAllProblems = function(){
     return latestSnapshot;
 
   })
-  .delay(minDelay)
+  .delay(apiDelay)
   .then(function(latestSnapshot){
 
     // Call blob snapshot 
@@ -74,7 +108,7 @@ var downloadNewProblems = function(allProblems, maxNewProblemsToGet){
   var problems = allProblems
     // Get all problems which do not exist yet
     .filter(function(problem){
-      return !fs.existsSync(problemsDir + "/" + problem.problem_id + problemsExt);
+      return !fs.existsSync(dataDir + "/" + problem.problem_id + problemsExt);
     })
     // Set max problems to get
     .slice(0, maxNewProblemsToGet || allProblems.length);
@@ -86,7 +120,7 @@ var downloadNewProblems = function(allProblems, maxNewProblemsToGet){
     problems, 
     function(problem){
 
-      var targetFile = problemsDir + "/" + problem.problem_id + problemsExt;
+      var targetFile = dataDir + "/" + problem.problem_id + problemsExt;
       return request({ url: 'blob/' + problem.problem_spec_hash })
         .then(function(data){
         
@@ -96,7 +130,7 @@ var downloadNewProblems = function(allProblems, maxNewProblemsToGet){
           console.log("-------------------------------------------");
           fs.writeFile(targetFile, data);
         })
-        .delay(minDelay);
+        .delay(apiDelay);
     }, 
     // Using Bluebird concurrency
     {concurrency: 1}
@@ -173,18 +207,32 @@ var analyzeProblemStrength = function(problems, orderKey, orderDesc){
 };
 
 
-// getAllProblems().then(function(problems){
-//   // Download and save new problems
-//   downloadNewProblems(problems);
-// });
+switch(argv._[0]) {
+  case "download":
+
+    getAllProblems().then(function(problems){
+      // Download and save new problems
+      downloadNewProblems(problems);
+    });
+
+    break;
+  case "stats":
+
+    getAllProblems().then(function(problems){
+        
+      var teamProblems = filterTeamProblems(problems, myTeamId);
+      var analyzedProblems = analyzeProblemStrength(teamProblems, 'teamScore', true);
+
+      console.log("Problems Analysis");
+      console.log(analyzedProblems);
+
+    });
+
+    break;
+  default:
+    console.log("Option", argv._[0], " not found  See help with --help.");
+
+}
 
 
-getAllProblems().then(function(problems){
-    
-  var teamProblems = filterTeamProblems(problems, myTeamId);
-  var analyzedProblems = analyzeProblemStrength(teamProblems, 'teamScore', true);
 
-  console.log("Problems Analysis");
-  console.log(analyzedProblems);
-
-});
