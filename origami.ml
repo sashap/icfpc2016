@@ -74,15 +74,15 @@ let () =
   | "solve"::"box"::num::a::b::[] ->
     let n = int_of_string num in
     let p = Problem.input @@ get_problem n in
-    let solution = Ops.solve_in_box num p.shape (Pt.of_string a, Pt.of_string b) in
+    let solution = Solve.in_box num p.shape (Pt.of_string a, Pt.of_string b) in
     save_solution n solution
   | "solve"::meth::files ->
     let meth = match meth with
-      | "bb" -> Ops.solve_bb
-      | "best_bb" -> Ops.solve_best_bb
-      | "single_facet" -> Ops.solve_single_facet
-      | "origin_tri" -> Ops.solve_origin_tri
-      | "auto" -> Ops.solve_auto
+      | "bb" -> Solve.bb
+      | "best_bb" -> Solve.best_bb
+      | "single_facet" -> Solve.single_facet
+      | "origin_tri" -> Solve.origin_tri
+      | "auto" -> Solve.auto
       | _ -> assert false
     in
     files |> List.iter begin fun file ->
