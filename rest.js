@@ -336,8 +336,8 @@ var getSolvedProblemsStats = function(problems, orderKey, orderDesc, fullStats) 
 
     var result = {
       id: ps.id,
-      bestResult: bestResult,
-      teamScore: teamScore,
+      bestResult: bestResult.toFixed(argv.rounded),
+      teamScore: teamScore.toFixed(argv.rounded),
       perfectSolutions: ps.perfectSolutions,
       partialSolutions: ps.partialSolutions,
     }
