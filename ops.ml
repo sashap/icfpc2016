@@ -217,7 +217,7 @@ let intersect_edges p1 p2 =
   Poly.edges p1 |> List.iter begin fun e ->
     let points = ref [] in
     !e2 |> List.iter begin fun c ->
-      match Line.get_intersect e c with
+      match Line.intersect (`Segment e) (`Segment c) with
       | None -> ()
       | Some p ->
         ok := true;
@@ -377,7 +377,7 @@ let rec fall_back hist pt =
 let intersect_poly poly (p1,p2) =
   let vtc = ref [] in
   let _ = List.fold_left (fun (_pid,prev) (cid,cur) ->
-    match Line.get_intersect (p1,p2) (prev,cur) with
+    match Line.intersect (`Segment (p1,p2)) (`Segment (prev,cur)) with
     | None -> (cid,cur)
     | Some p -> vtc := p::!vtc; (cid,cur)) (List.last poly) poly
   in
