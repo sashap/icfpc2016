@@ -222,43 +222,46 @@ let which_side (a,b) pt =
   else
     Left
 
-let get_ord f s = if R.gt f s then f,s else s,f
-let is_on_line (a,b) pt =
+(**is point [pt] fits in rectangle specified by points [a] & [b]*)
+let is_in_box pt a b =
   let open R in
-  Pt.eq pt a || Pt.eq pt b ||
-    (let xg,xs = get_ord a.x b.x in
-     let yg,ys = get_ord a.y b.y in
-     which_side (a,b) pt = On && (le pt.x xg) && (ge pt.x xs) && (le pt.y yg) && (ge pt.y ys))
+  let lg = Pt.hi a b in
+  let ls = Pt.lo a b in
+  (le pt.x lg.x) && (ge pt.x ls.x) && (le pt.y lg.y) && (ge pt.y ls.y)
 
-let get_intersect (a1,b1) (a2,b2) = (*kx+ny=c*)
+let is_on_line (a,b) pt =
+  Pt.eq pt a || Pt.eq pt b || (which_side (a,b) pt = On && is_in_box pt a b)
+
+let intersect l1 l2 =
   let open R in
   let open R.Infix in
-  let get_coefs (a : point) b =
+  let get_coefs (a : point) b = (*kx+ny=c*)
     let k = b.y - a.y in
     let n = a.x - b.x in
     let c = (mul k a.x) + (mul n a.y) in
     (k,n,c)
   in
+  let line_or_segment l =
+    match l with
+    | `Line (a,b) -> (a,b), true
+    | `Segment (a,b) -> (a,b), false
+  in
+  let (a1,b1),wildcard1 = line_or_segment l1 in
+  let (a2,b2),wildcard2 = line_or_segment l2 in
   let k1,n1,c1 = get_coefs a1 b1 in
   let k2,n2,c2 = get_coefs a2 b2 in
   match (k1 * n2) - (k2 * n1) with
   | det when R.eq det R.zero -> None
   | det ->
-    let x = simplify (((n2*c1) - (n1*c2))/det) in
-    let y = simplify (((k1*c2) - (k2*c1))/det) in
-    let x1g,x1s = get_ord a1.x b1.x in
-    let y1g,y1s = get_ord a1.y b1.y in
-    let x2g,x2s = get_ord a2.x b2.x in
-    let y2g,y2s = get_ord a2.y b2.y in
-    if (le x x1g) && (ge x x1s) && (le x x2g) && (ge x x2s) &&
-       (le y y1g) && (ge y y1s) && (le y y2g) && (ge y y2s) then
-      Some {x;y}
+    let res = {x = simplify (((n2*c1) - (n1*c2))/det); y = simplify (((k1*c2) - (k2*c1))/det)} in
+    if (wildcard1 || is_in_box res a1 b1) && (wildcard2 || is_in_box res a2 b2) then
+      Some res
     else
       None
 
-let get_on_line (a,b) perc = (*get point on line represented by %*)
+(** get point on segment specified by ratio [perc] = length([a],[result])/length([a],[b]) *)
+let get_on_line (a,b) perc =
   let open R.Infix in
-  (* let perc = R.make (Z.of_int @@ int_of_float (perc *. 1000000000.)) (Z.of_int 1000000000) in *)
   {x = a.x + ((b.x - a.x) * perc); y = a.y + ((b.y - a.y) * perc)}
 
 end
